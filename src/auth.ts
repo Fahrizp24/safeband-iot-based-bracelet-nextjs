@@ -6,6 +6,11 @@ import { db } from "@/lib/firebase"
 import { collection, query, where, getDocs, doc, setDoc, getDoc } from "firebase/firestore"
 import { cookies } from "next/headers"
 
+/**
+ * Full auth configuration with Firebase (Node.js only).
+ * This file imports Firebase and MUST NOT be used in middleware.
+ * For middleware, use auth.config.ts instead.
+ */
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Google({
@@ -130,5 +135,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   pages: {
     signIn: "/auth/login",
   },
-  secret: process.env.AUTH_SECRET || "fallback_secret_for_development",
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "fallback_secret_for_development",
 })
