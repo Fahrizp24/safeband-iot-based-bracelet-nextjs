@@ -93,6 +93,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return true;
     },
   },
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   basePath: "/api/auth",
 })
+

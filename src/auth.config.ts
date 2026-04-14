@@ -31,6 +31,8 @@ export const authConfig = {
     }
   },
   providers: [], // Diisi di auth.ts
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'fallback_secret_for_dev'
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  trustHost: true
 } satisfies NextAuthConfig;
+
 
