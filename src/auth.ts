@@ -2,8 +2,9 @@ import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import Google from "next-auth/providers/google"
 import { db } from "@/lib/firebase"
-import { authConfig } from "./auth.config"
+import { authConfig } from "./auth.edge"
 import { collection, query, where, getDocs, doc, setDoc, getDoc } from "firebase/firestore"
+
 import { cookies } from "next/headers"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
