@@ -1,13 +1,5 @@
-import NextAuth from 'next-auth';
 import { NextResponse } from 'next/server';
-import authConfig from '@/auth.config';
-
-/**
- * Middleware using Edge-safe auth config (no Firebase imports).
- * This runs in Edge Runtime on Vercel, so it MUST NOT import
- * firebase or any Node.js-only packages.
- */
-const { auth } = NextAuth(authConfig);
+import { auth } from '@/auth';
 
 export default auth((req) => {
   const { nextUrl } = req;
