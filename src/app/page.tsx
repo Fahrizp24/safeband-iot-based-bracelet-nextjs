@@ -257,7 +257,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="flex-1 flex justify-center py-8">
-               <img src="/assets/Logo dark.png" alt="SafeBand Insignia" className="h-48 md:h-64 object-contain brightness-110 filter drop-shadow-2xl opacity-90" />
+               <img src="/assets/logo dark.png" alt="SafeBand Insignia" className="h-48 md:h-64 object-contain brightness-110 filter drop-shadow-2xl opacity-90" />
             </div>
           </div>
         </section>
