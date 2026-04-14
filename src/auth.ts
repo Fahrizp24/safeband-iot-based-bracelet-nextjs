@@ -2,11 +2,12 @@ import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import Google from "next-auth/providers/google"
 import { db } from "@/lib/firebase"
-
+import { authConfig } from "./auth.config"
 import { collection, query, where, getDocs, doc, setDoc, getDoc } from "firebase/firestore"
 import { cookies } from "next/headers"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -31,15 +32,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const userDoc = querySnapshot.docs[0];
         const userData = userDoc.data();
 
-        // Validasi password (mendukung typo "pasword" sesuai database Anda)
-        // Dikonversi ke String untuk mencegah kegagalan jika tersimpan sebagai Angka di Firestore
         const dbPassword = String(userData.password || userData.pasword || userData.Password).trim();
         const inputPassword = String(userPassword).trim();
         
-        console.log("=== DEBUG LOGIN ===");
-        console.log("Password dari Database:", dbPassword);
-        console.log("Password dari Form input:", inputPassword);
-
         if (dbPassword !== inputPassword) {
           throw new Error("Password yang Anda masukkan salah.");
         }
@@ -55,6 +50,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
+    ...authConfig.callbacks,
     async signIn({ user, account }) {
       if (account?.provider === "google" && user.email) {
         let deviceSn = "";
@@ -68,7 +64,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const userRef = doc(db, "users", user.email);
         const userSnap = await getDoc(userRef);
         
-        // Buat data baru jika login Google pertama kali, atau Load data lama
         if (!userSnap.exists()) {
           (user as any).role = "customer";
           (user as any).deviceSn = deviceSn;
@@ -91,44 +86,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             });
           }
         } else {
-          // Jika akun Google sudah ada di DB, tempelkan data aslinya ke token!
           (user as any).role = userSnap.data().role || "customer";
           (user as any).deviceSn = userSnap.data().deviceSn || "";
         }
       }
       return true;
     },
-    async jwt({ token, user, trigger, session }) {
-      // PERHATIKAN: Jangan memanggil Firebase getDoc di sini! 
-      // Karena middleware Next.js berjalan di "Edge Runtime", SDK Firebase akan hang.
-      // Cukup simpan data user (yang sudah ditarik di tahap "authorize" atau "signIn") ke token.
-      if (user) {
-        token.role = (user as any).role || "customer";
-        token.deviceSn = (user as any).deviceSn || "";
-      }
-      
-      // Update data session secara manual jika `update()` dipanggil dari client
-      if (trigger === "update" && session) {
-        if (session.deviceSn !== undefined) {
-          token.deviceSn = session.deviceSn;
-        }
-        if (session.role !== undefined) {
-          token.role = session.role;
-        }
-      }
-      
-      return token;
-    },
-    session({ session, token }) {
-      if (session.user) {
-        (session.user as any).role = token.role;
-        (session.user as any).deviceSn = token.deviceSn;
-      }
-      return session
-    }
   },
-  pages: {
-    signIn: "/auth/login",
-  },
-  secret: process.env.AUTH_SECRET || "fallback_secret_for_development",
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
 })
+

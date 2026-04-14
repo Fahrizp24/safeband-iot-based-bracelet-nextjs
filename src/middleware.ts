@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import NextAuth from 'next-auth';
+import { authConfig } from './auth.config';
+
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const { nextUrl } = req;
@@ -39,8 +42,9 @@ export default auth((req) => {
   }
 
   return NextResponse.next();
-})
+});
 
 export const config = {
   matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
 };
+
