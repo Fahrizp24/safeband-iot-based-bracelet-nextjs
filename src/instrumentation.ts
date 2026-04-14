@@ -24,10 +24,15 @@ export async function register() {
       Sentry.init(sentryOptions);
     }
 
-    if (process.env.NEXT_RUNTIME === 'edge') {
+    if (process.env.NEXT_RUNTIME === 'edge' && process.env.NEXT_PUBLIC_SENTRY_DSN) {
       // Edge Sentry configuration
-      Sentry.init(sentryOptions);
+      try {
+        Sentry.init(sentryOptions);
+      } catch (e) {
+        console.error("Sentry Edge Init Error:", e);
+      }
     }
+
   }
 }
 
