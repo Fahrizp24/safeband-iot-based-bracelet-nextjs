@@ -43,7 +43,22 @@ export default function ProfilePage() {
       toast.error('Sesi tidak ditemukan. Silakan login ulang.');
       return;
     }
+
+    if (deviceSn && !deviceSn.toUpperCase().startsWith('ESP32-')) {
+      toast.error("Format Device ID tidak valid. Harus diawali dengan 'ESP32-' (Contoh: ESP32-001)");
+      return;
+    }
     
+    // Cek apakah Device ID sudah digunakan user lain
+    if (deviceSn) {
+      const deviceRef = doc(db, 'devices', deviceSn);
+      const deviceSnap = await getDoc(deviceRef);
+      if (deviceSnap.exists() && deviceSnap.data().userId !== session.user.email) {
+        toast.error('Device ID sudah terdaftar pada akun lain');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const userRef = doc(db, 'users', session.user.email);

@@ -46,7 +46,7 @@ export default function CustomerOverview() {
           setLoading(false);
         });
 
-        // Listen ke data Incidents juga!
+        // Listen ke data Incidents 
         import('firebase/firestore').then(({ query, collection, where }) => {
           const snUpper = sn.toUpperCase();
           const snLower = sn.toLowerCase();
@@ -57,7 +57,7 @@ export default function CustomerOverview() {
           );
           
           const incidentUnsub = onSnapshot(incidentsQuery, (snap) => {
-            // Cari apakah ada BENCANA yang status tiketnya masih "open"
+            // Cari apakah ada incident yang status tiketnya masih "open"
             const openDanger = snap.docs.find((d) => {
               const data = d.data();
               const type = data.type?.toUpperCase() || '';
@@ -70,8 +70,6 @@ export default function CustomerOverview() {
 
         return () => {
           deviceUnsub();
-          // We can't synchronously unsub incidentUnsub here cleanly without restructuring, 
-          // but for simple Dashboard component unmount it's fairly okay or could be refactored.
         };
       } else {
         setLoading(false);
@@ -109,10 +107,10 @@ export default function CustomerOverview() {
   const cond = sensorData?.condition?.toUpperCase();
   const dangerKeywords = ['FALL', 'DANGER', 'FALL DETECTED', 'FALL_DETECTED'];
   
-  // Lanjut: Web Paksa kondisi "BAHAYA" kalau ada tiket incident "open" !
+  // Lanjut: Web kondisi "BAHAYA" kalau ada tiket incident "open" !
   const isDanger = dangerKeywords.includes(cond) || hasOpenIncident;
   const isSafe = !isDanger && cond === 'SAFE';
-  const hasNoInfo = !sensorData && !hasOpenIncident;
+  const hasNoInfo = !sensorData?.condition && !hasOpenIncident;
   
   const formattedLastUpdated = sensorData?.lastUpdated 
     ? (typeof sensorData.lastUpdated.toDate === 'function' 
@@ -140,17 +138,17 @@ export default function CustomerOverview() {
                 <h2 className='text-3xl font-bold text-gray-600 tracking-tight text-center'>Belum Ada Info</h2>
                 <p className='text-gray-500 mt-2 font-medium text-center'>Gelang belum mengirimkan data sensor.<br />Pastikan perangkat menyala dan terhubung.</p>
               </>
-            ) : isSafe ? (
-              <>
-                <CheckCircle2 className='w-24 h-24 text-green-500 mb-4' />
-                <h2 className='text-4xl font-bold text-green-700 tracking-tight'>A M A N</h2>
-                <p className='text-green-600 mt-2 font-medium'>Tidak terdeteksi riwayat jatuh terkini.</p>
-              </>
-            ) : (
+            ) : isDanger ? (
               <>
                 <AlertTriangle className='w-24 h-24 text-red-500 mb-4 animate-pulse' />
                 <h2 className='text-4xl font-bold text-red-700 tracking-tight animate-bounce text-center'>BAHAYA (JATUH) !</h2>
                 <p className='text-red-600 mt-2 font-medium text-center'>Terdeteksi insiden jatuh!<br />Segera lakukan pertolongan atau hubungi nomor darurat.</p>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className='w-24 h-24 text-green-500 mb-4' />
+                <h2 className='text-4xl font-bold text-green-700 tracking-tight'>A M A N</h2>
+                <p className='text-green-600 mt-2 font-medium'>Tidak terdeteksi riwayat jatuh terkini.</p>
               </>
             )}
             <p className='text-sm text-muted-foreground mt-6'>
@@ -181,10 +179,10 @@ export default function CustomerOverview() {
             </CardHeader>
             <CardContent>
               <div className='text-2xl font-bold'>
-                {hasNoInfo ? 'Standby' : isSafe ? 'Normal & Aman' : 'JATUH / BENTURAN'}
+                {hasNoInfo ? 'Standby' : isDanger ? 'JATUH / BENTURAN' : 'Normal & Aman'}
               </div>
               <p className='text-xs text-muted-foreground mt-1'>
-                {hasNoInfo ? 'Menunggu koneksi dari gelang...' : isSafe ? 'Gelang mentransmisikan data normal' : 'Sensor G-Force menangani lonjakan keras'}
+                {hasNoInfo ? 'Menunggu koneksi dari gelang...' : isDanger ? 'Sensor G-Force menangani lonjakan keras' : 'Gelang mentransmisikan data normal'}
               </p>
               {!hasNoInfo && (
                 <p className='text-xs font-semibold text-gray-500 mt-2'>

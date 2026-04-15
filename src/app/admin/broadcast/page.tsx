@@ -12,13 +12,35 @@ export default function BroadcastPage() {
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
 
-  const handleBroadcast = () => {
-    if (title && message) {
+  const [isSending, setIsSending] = useState(false);
+
+  const handleBroadcast = async () => {
+    if (!title || !message) {
+      toast.error('Judul dan pesan tidak boleh kosong.');
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      const { db } = await import('@/lib/firebase');
+      const { collection, addDoc } = await import('firebase/firestore');
+
+      await addDoc(collection(db, 'notifications'), {
+        title,
+        message,
+        type: 'broadcast',
+        isGlobal: true, // Untuk menandai ini ditujukan ke semua user
+        createdAt: new Date().toISOString()
+      });
+
       toast.success('Pengumuman berhasil disebarkan ke semua pelanggan.');
       setTitle('');
       setMessage('');
-    } else {
-      toast.error('Judul dan pesan tidak boleh kosong.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Gagal mengirim broadcast.');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -54,8 +76,8 @@ export default function BroadcastPage() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleBroadcast} className='w-full'>
-            <Send className='w-4 h-4 mr-2' /> Kirim Broadcast
+          <Button onClick={handleBroadcast} className='w-full' disabled={isSending}>
+            <Send className='w-4 h-4 mr-2' /> {isSending ? 'Mengirim...' : 'Kirim Broadcast'}
           </Button>
         </CardFooter>
       </Card>

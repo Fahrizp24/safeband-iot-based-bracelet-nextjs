@@ -16,16 +16,27 @@ export default auth((req) => {
   if (isAuthRoute || isHomeRoute) {
     if (isLoggedIn) {
       const role = (req.auth?.user as any)?.role;
-      return NextResponse.redirect(
-        new URL(role === 'admin' ? '/admin/overview' : '/dashboard/overview', nextUrl)
-      );
+      const target = role === 'admin' ? '/admin/overview' : '/dashboard/overview';
+      return NextResponse.redirect(new URL(target, req.url));
     }
     return NextResponse.next();
   }
 
   // Proteksi rute Dashboard/Admin
   if (!isLoggedIn) {
-    return NextResponse.redirect(new URL('/auth/login', nextUrl));
+    return NextResponse.redirect(new URL('/auth/login', req.url));
+  }
+
+  const role = (req.auth?.user as any)?.role;
+
+  // Jika user admin nyasar ke customer dashboard
+  if (nextUrl.pathname.startsWith('/dashboard') && role === 'admin') {
+    return NextResponse.redirect(new URL('/admin/overview', req.url));
+  }
+
+  // Jika user customer nyasar ke admin dashboard
+  if (nextUrl.pathname.startsWith('/admin') && role !== 'admin') {
+    return NextResponse.redirect(new URL('/dashboard/overview', req.url));
   }
 
   return NextResponse.next();

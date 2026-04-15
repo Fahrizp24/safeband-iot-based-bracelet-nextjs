@@ -27,6 +27,18 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
 
+    if (password.length < 6) {
+      toast.error('Password minimal harus 6 karakter');
+      setLoading(false);
+      return;
+    }
+
+    if (!deviceSn.toUpperCase().startsWith('ESP32-')) {
+      toast.error("Format Device ID tidak valid. Harus diawali dengan 'ESP32-' (Contoh: ESP32-001)");
+      setLoading(false);
+      return;
+    }
+
     //daftar ke firebase
     const userRef = doc(db, "users", email);
     const userSnap = await getDoc(userRef);
@@ -35,6 +47,17 @@ export default function RegisterPage() {
       toast.error('Email sudah terdaftar');
       setLoading(false);
       return;
+    }
+
+    // Cek apakah Device ID sudah digunakan user lain
+    if (deviceSn) {
+      const deviceRef = doc(db, "devices", deviceSn);
+      const deviceSnap = await getDoc(deviceRef);
+      if (deviceSnap.exists()) {
+        toast.error('Device ID sudah terdaftar pada akun lain');
+        setLoading(false);
+        return;
+      }
     }
     
     await setDoc(userRef, {
@@ -145,7 +168,7 @@ export default function RegisterPage() {
                 <Input
                   id='password'
                   type='password'
-                  placeholder='Buat password rahasia'
+                  placeholder='Minimal 6 karakter'
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -153,7 +176,7 @@ export default function RegisterPage() {
                 />
               </div>
               <div className='space-y-2'>
-                <Label htmlFor='deviceSn' className="text-sm font-semibold text-slate-700">Serial Number Device (ESP32)</Label>
+                <Label htmlFor='deviceSn' className="text-sm font-semibold text-slate-700">Serial Number Device (ESP)</Label>
                 <Input
                   id='deviceSn'
                   placeholder='Contoh: ESP32-001'

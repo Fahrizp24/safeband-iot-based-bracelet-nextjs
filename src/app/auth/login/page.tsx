@@ -10,11 +10,13 @@ import { Icons } from '@/components/icons';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('customer@example.com');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,10 +30,25 @@ export default function LoginPage() {
     setLoading(false);
     
     if (res?.error) {
-      toast.error('Gagal login: Kredensial tidak valid');
+      toast.error('Gagal login: Email atau password salah');
     } else {
       toast.success('Login berhasil');
-      router.push('/dashboard/overview');
+      
+      // Ambil data user dari Firestore untuk menentukan kemana harus diredirect
+      try {
+        const userRef = doc(db, 'users', email);
+        const userSnap = await getDoc(userRef);
+        
+        if (userSnap.exists() && userSnap.data().role === 'admin') {
+          router.push('/admin/overview');
+        } else {
+          router.push('/dashboard/overview');
+        }
+      } catch (err) {
+        console.error("Redirect error:", err);
+        // Fallback jika gagal ambil role
+        router.push('/dashboard/overview');
+      }
     }
   };
 
@@ -87,7 +104,7 @@ export default function LoginPage() {
                 <Input
                   id='email'
                   type='email'
-                  placeholder='nama@contoh.com'
+                  placeholder='yourname@gmail.com'
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="bg-slate-50 border-slate-200 focus-visible:ring-blue-600 rounded-xl px-4 py-6 text-base"
@@ -131,7 +148,7 @@ export default function LoginPage() {
                   type='button' 
                   variant='outline' 
                   className='w-full rounded-xl bg-white border-slate-200 hover:bg-slate-50 hover:text-slate-900 font-semibold h-12 active:scale-[0.98] transition-transform shadow-sm' 
-                  onClick={() => signIn('google', { callbackUrl: '/dashboard/overview' })}
+                  onClick={() => signIn('google', { callbackUrl: '/' })}
                 >
                   <svg className="mr-3 h-5 w-5" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path></svg>
                   Masuk dengan akun Google

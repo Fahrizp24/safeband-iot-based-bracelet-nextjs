@@ -26,7 +26,6 @@ export default function EmergencySetupPage() {
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             const data = docSnap.data();
-            // Coba ambil field baru 'emergencyContact', jika tidak ada coba field lama 'emergencyContacts'
             if (data.emergencyContact) {
               setContact(data.emergencyContact);
             } else if (data.emergencyContacts && data.emergencyContacts.length > 0) {
@@ -93,7 +92,7 @@ export default function EmergencySetupPage() {
             <Label htmlFor='phone' className="font-semibold">Nomor Telepon / WhatsApp</Label>
             <Input 
               id='phone' 
-              placeholder='Contoh: +628123456789' 
+              placeholder='Contoh: 08123456789' 
               value={contact}
               onChange={(e) => setContact(e.target.value)}
               disabled={isSaving}
