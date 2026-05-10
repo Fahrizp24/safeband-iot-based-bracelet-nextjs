@@ -28,17 +28,17 @@ export default function LoginPage() {
       redirect: false
     });
     setLoading(false);
-    
+
     if (res?.error) {
       toast.error('Gagal login: Email atau password salah');
     } else {
       toast.success('Login berhasil');
-      
+
       // Ambil data user dari Firestore untuk menentukan kemana harus diredirect
       try {
         const userRef = doc(db, 'users', email);
         const userSnap = await getDoc(userRef);
-        
+
         if (userSnap.exists() && userSnap.data().role === 'admin') {
           router.push('/admin/overview');
         } else {
@@ -60,23 +60,23 @@ export default function LoginPage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/20 blur-[120px] rounded-full pointer-events-none"></div>
 
         <div className="relative z-10 flex flex-col items-center w-full px-12">
-           <img 
-              src="/assets/mockup item.png" 
-              alt="SafeBand Mockup" 
-              className="w-full max-w-lg object-contain drop-shadow-2xl opacity-95 transition-transform hover:scale-105 duration-700 rounded-lg"
-            />
-           <div className="mt-12 text-center">
-             <h2 className="text-3xl font-bold text-white tracking-tight">Teknologi Perlindungan Real-time</h2>
-             <p className="mt-4 text-slate-400 text-lg max-w-md mx-auto">
-               Desain elegan, baterai tahan lama, dan sensor MPU6050 presisi tinggi yang menjamin keluarga Anda aman kapan saja.
-             </p>
-           </div>
+          <img
+            src="/assets/mockup item.png"
+            alt="SafeBand Mockup"
+            className="w-full max-w-lg object-contain drop-shadow-2xl opacity-95 transition-transform hover:scale-105 duration-700 rounded-lg"
+          />
+          <div className="mt-12 text-center">
+            <h2 className="text-3xl font-bold text-white tracking-tight">Teknologi Perlindungan Real-time</h2>
+            <p className="mt-4 text-slate-400 text-lg max-w-md mx-auto">
+              Desain elegan, baterai tahan lama, dan sensor MPU6050 presisi tinggi yang menjamin keluarga Anda aman kapan saja.
+            </p>
+          </div>
         </div>
 
         {/* Subtle branding at bottom left */}
         <div className="absolute bottom-6 left-8 flex items-center gap-2 opacity-60">
-           <img src="/assets/Logo lighy.png" alt="in" className="h-6 filter brightness-0 invert" />
-           <span className="text-white text-sm font-semibold tracking-wider uppercase">SafeBand Ecosystem</span>
+          <img src="/assets/Logo lighy.png" alt="in" className="h-6 filter brightness-0 invert" />
+          <span className="text-white text-sm font-semibold tracking-wider uppercase">SafeBand Ecosystem</span>
         </div>
       </div>
 
@@ -85,13 +85,13 @@ export default function LoginPage() {
         <div className="mx-auto w-full max-w-md">
           {/* Logo only for mobile, visible on desktop as nice touch */}
           <Link href="/" className="mb-8 block max-w-fit hover:opacity-80 transition-opacity">
-            <img 
-              src="/assets/logo with my brand name.png" 
-              alt="SafeBand Brand" 
+            <img
+              src="/assets/logo with my brand name.png"
+              alt="SafeBand Brand"
               className="h-10 w-auto object-contain"
             />
           </Link>
-          
+
           <h1 className='mt-6 text-3xl font-extrabold tracking-tight text-slate-900'>Selamat Datang Kembali</h1>
           <p className='mt-2 text-sm text-slate-500'>
             Masuk untuk memonitor data keselamatan perangkat Anda.
@@ -144,10 +144,10 @@ export default function LoginPage() {
               </div>
 
               <div className="mt-6">
-                <Button 
-                  type='button' 
-                  variant='outline' 
-                  className='w-full rounded-xl bg-white border-slate-200 hover:bg-slate-50 hover:text-slate-900 font-semibold h-12 active:scale-[0.98] transition-transform shadow-sm' 
+                <Button
+                  type='button'
+                  variant='outline'
+                  className='w-full rounded-xl bg-white border-slate-200 hover:bg-slate-50 hover:text-slate-900 font-semibold h-12 active:scale-[0.98] transition-transform shadow-sm'
                   onClick={() => signIn('google', { callbackUrl: '/' })}
                 >
                   <svg className="mr-3 h-5 w-5" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path></svg>

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useSession } from 'next-auth/react';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { Icons } from '@/components/icons';
 import { AlertTriangle, MapPin, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -51,6 +51,42 @@ export default function TrackingPage() {
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const [incidentDetail, setIncidentDetail] = useState<any>(null);
 
+  // Fungsi untuk fetch dari Hadoop API
+  const fetchHadoopData = async (sn: string) => {
+    try {
+      const res = await fetch(`/api/hadoop/incidents?deviceId=${sn}`);
+      const json = await res.json();
+      
+      if (json.success && json.data.length > 0) {
+        // Karena API sudah mengurutkan data (terbaru di index 0)
+        const latestIncident = json.data[0];
+        
+        // Cek parse Lat & Lng dari Hadoop CSV
+        const lat = parseFloat(latestIncident.lat);
+        const lng = parseFloat(latestIncident.lng);
+        
+        if (!isNaN(lat) && !isNaN(lng)) {
+          // Hanya update jika koordinat valid
+          if (lat !== 0 || lng !== 0) {
+              setPosition({ lat, lng });
+              setIncidentDetail(latestIncident);
+              
+              let dateStr = 'Unknown';
+              if (latestIncident.timestamp) {
+                 const t = new Date(latestIncident.timestamp);
+                 dateStr = isNaN(t.getTime()) ? latestIncident.timestamp : t.toLocaleString('id-ID');
+              }
+              setLastUpdated(dateStr);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Gagal fetch data hadoop", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (status !== 'authenticated' || !session?.user?.email) return;
 
@@ -74,62 +110,12 @@ export default function TrackingPage() {
         if (!sn) {
           setNoDevice(true);
           setLoading(false);
+          setDeviceSn('');
           return;
         }
 
         setNoDevice(false);
         setDeviceSn(sn);
-
-        // Ambil Data dari activity/incident terakhir (Sesuai Permintaan User)
-        const incidentsQuery = query(
-          collection(db, 'incidents'),
-          where('deviceSn', 'in', [sn, sn.toUpperCase(), sn.toLowerCase()])
-        );
-
-        const logsUnsub = onSnapshot(incidentsQuery, (snapshot) => {
-          if (!snapshot.empty) {
-            // Sort manual by timestamp descending untuk menghindari index error di Firestore
-            const docs = snapshot.docs.map(d => {
-              const data = d.data();
-              // Mendukung field 'occuredAt' (dari alat) atau 'timestamp' (dari API)
-              const logTime = data.occuredAt || data.timestamp;
-              
-              let timeValue = 0;
-              if (logTime) {
-                // Mendukung format Firebase Timestamp (.toDate()) atau String biasa
-                timeValue = typeof logTime.toDate === 'function' 
-                  ? logTime.toDate().getTime() 
-                  : new Date(logTime).getTime();
-              }
-
-              return { 
-                id: d.id, 
-                ...data,
-                rawTime: timeValue
-              };
-            }) as any[];
-            
-            // Urutkan DESC (Terbaru di index 0)
-            docs.sort((a, b) => b.rawTime - a.rawTime);
-            
-            const latestIncident = docs[0];
-            const loc = latestIncident.location || latestIncident.coordinates;
-            
-            if (loc) {
-              const lat = loc.lat || loc.latitude;
-              const lng = loc.lng || loc.longitude;
-              
-              if (typeof lat === 'number' && typeof lng === 'number') {
-                setPosition({ lat, lng });
-                setIncidentDetail(latestIncident);
-                setLastUpdated(new Date(latestIncident.rawTime).toLocaleString('id-ID'));
-              }
-            }
-          }
-          setLoading(false);
-        });
-
-        return () => logsUnsub();
       } else {
         setLoading(false);
       }
@@ -138,11 +124,25 @@ export default function TrackingPage() {
     return () => userUnsub();
   }, [session, status]);
 
-  if (status === 'loading' || loading) {
+  // Polling data dari Hadoop jika deviceSn tersedia
+  useEffect(() => {
+      if (deviceSn) {
+          setLoading(true);
+          fetchHadoopData(deviceSn);
+
+          const interval = setInterval(() => {
+              fetchHadoopData(deviceSn);
+          }, 10000);
+
+          return () => clearInterval(interval);
+      }
+  }, [deviceSn]);
+
+  if (status === 'loading' || loading && !position) {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-muted-foreground min-h-[400px]">
         <Icons.spinner className="h-8 w-8 animate-spin mb-4" />
-        <p>Memuat Peta Pelacakan...</p>
+        <p>Memuat Peta Pelacakan dari Hadoop...</p>
       </div>
     );
   }
@@ -169,11 +169,11 @@ export default function TrackingPage() {
           <h1 className='text-3xl font-bold'>Live Tracking</h1>
           <p className='text-muted-foreground text-sm flex items-center gap-1.5'>
             <History className="h-4 w-4" />
-            Menampilkan lokasi berdasarkan Aktivitas Terakhir (Log Insiden).
+            Menampilkan lokasi berdasarkan Aktivitas Terakhir (Log Hadoop).
           </p>
           <div className="flex items-center gap-2 mt-1">
             <Badge variant="secondary" className="font-mono text-xs">{deviceSn}</Badge>
-            {lastUpdated && <span className="text-xs text-muted-foreground italic">Waktu Insiden: {lastUpdated}</span>}
+            {lastUpdated && <span className="text-xs text-muted-foreground italic">Waktu Rekam: {lastUpdated}</span>}
           </div>
         </div>
       </div>
@@ -182,7 +182,7 @@ export default function TrackingPage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <MapPin className="h-5 w-5 text-red-500" />
-            <CardTitle>Titik Lokasi Insiden</CardTitle>
+            <CardTitle>Titik Lokasi Terakhir</CardTitle>
           </div>
           <CardDescription>Peta menunjukkan koordinat di mana kejadian terakhir terdeteksi.</CardDescription>
         </CardHeader>
@@ -202,8 +202,8 @@ export default function TrackingPage() {
                 <Marker position={[position.lat, position.lng]}>
                   <Popup className="premium-popup">
                     <div className="p-1">
-                      <p className="font-bold text-red-600">LOKASI INSIDEN</p>
-                      <p className="text-xs font-semibold">{incidentDetail?.type || 'Jatuh Terdeteksi'}</p>
+                      <p className="font-bold text-red-600">LOKASI TERAKHIR</p>
+                      <p className="text-xs font-semibold">{incidentDetail?.type || 'Aktivitas Normal'}</p>
                       <p className="text-[10px] text-muted-foreground mt-1">Waktu: {lastUpdated}</p>
                     </div>
                   </Popup>
@@ -215,9 +215,9 @@ export default function TrackingPage() {
                 <div className="w-16 h-16 bg-muted-foreground/10 rounded-full flex items-center justify-center mb-4">
                   <MapPin className="h-8 w-8 text-muted-foreground animate-bounce" />
                 </div>
-                <h3 className="font-semibold text-lg">Tidak Ada Data Aktivitas</h3>
+                <h3 className="font-semibold text-lg">Tidak Ada Data Lokasi</h3>
                 <p className="text-muted-foreground text-sm max-w-xs mt-1">
-                  Belum ada log insiden yang tercatat untuk perangkat <strong>{deviceSn}</strong>. Lokasi akan muncul otomatis jika terdeteksi aktivitas jatuh.
+                  Belum ada log aktivitas dari perangkat <strong>{deviceSn}</strong> di Hadoop.
                 </p>
                 <Button variant="outline" size="sm" asChild className="mt-4">
                     <Link href="/dashboard/activity">Buka Activity Logs</Link>
@@ -229,11 +229,11 @@ export default function TrackingPage() {
           {position && (
             <div className='mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4'>
               <div className="bg-muted/50 p-4 rounded-lg border flex flex-col items-center justify-center text-center">
-                <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Latitude (G-Force Location)</span>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Latitude</span>
                 <span className="text-lg font-mono font-bold text-red-600">{position.lat.toFixed(6)}</span>
               </div>
               <div className="bg-muted/50 p-4 rounded-lg border flex flex-col items-center justify-center text-center">
-                <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Longitude (G-Force Location)</span>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Longitude</span>
                 <span className="text-lg font-mono font-bold text-red-600">{position.lng.toFixed(6)}</span>
               </div>
             </div>
