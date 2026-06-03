@@ -163,7 +163,7 @@ export default function ActivityLogsPage() {
                     <TableHead>Waktu Kejadian</TableHead>
                     <TableHead>Jenis Insiden</TableHead>
                     <TableHead>Catatan / Sensor</TableHead>
-                    <TableHead>Status Penanganan</TableHead>
+                    {/* <TableHead>Status Penanganan</TableHead> */}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -171,16 +171,6 @@ export default function ActivityLogsPage() {
                     <TableRow key={log.id}>
                       <TableCell>{log.date}</TableCell>
                       <TableCell className='font-medium'>
-                        {/* Jika badge isDanger tetap hijau karena tema, ini akan memaksa warna merah (bg-red-500) */}
-                        <Badge 
-                          variant={log.isDanger ? 'destructive' : 'outline'}
-                          className={log.isDanger ? 'bg-red-500 hover:bg-red-600 text-white border-transparent font-bold' : ''}
-                        >
-                          {log.typeDisplay}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className='text-sm text-muted-foreground'>{log.notes}</TableCell>
-                      <TableCell>
                         <Badge 
                           className={
                             log.handlingStatus?.toUpperCase() === 'JATUH' || log.handlingStatus?.toUpperCase() === 'ACTIVE'
@@ -193,6 +183,20 @@ export default function ActivityLogsPage() {
                           {log.handlingStatus ? log.handlingStatus.toUpperCase() : 'UNKNOWN'}
                         </Badge>
                       </TableCell>
+                      <TableCell className='text-sm text-muted-foreground'>{log.notes}</TableCell>
+                      {/* <TableCell>
+                        <Badge 
+                          className={
+                            log.handlingStatus?.toUpperCase() === 'JATUH' || log.handlingStatus?.toUpperCase() === 'ACTIVE'
+                              ? 'bg-red-500 hover:bg-red-600 text-white border-transparent font-bold'
+                              : log.handlingStatus?.toUpperCase() === 'WASPADA'
+                              ? 'bg-orange-500 hover:bg-orange-600 text-white border-transparent font-bold'
+                              : 'bg-green-500 hover:bg-green-600 text-white border-transparent font-bold'
+                          }
+                        >
+                          {log.handlingStatus ? log.handlingStatus.toUpperCase() : 'UNKNOWN'}
+                        </Badge>
+                      </TableCell> */}
                     </TableRow>
                   ))}
                   {paginatedLogs.length === 0 && (
