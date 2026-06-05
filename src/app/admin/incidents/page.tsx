@@ -17,7 +17,15 @@ export default function IncidentsPage() {
       const res = await fetch('/api/hadoop/incidents');
       const json = await res.json();
       if (json.success) {
-        setIncidents(json.data);
+        // === REVISI FAJRUL: FILTER DATA AGAR HANYA MENAMPILKAN PER 1 MENIT ===
+        const waktuSekarang = Date.now();
+        const dataTerfilter = json.data.filter((inc: any) => {
+          const waktuInsiden = new Date(inc.timestamp).getTime();
+          // Hanya lolos filter jika jarak waktu insiden dengan sekarang <= 1 menit (60.000 ms)
+          return !isNaN(waktuInsiden) && (waktuSekarang - waktuInsiden <= 60000);
+        });
+
+        setIncidents(dataTerfilter);
       } else {
         console.error("Error API:", json.error);
       }
@@ -41,7 +49,7 @@ export default function IncidentsPage() {
       <div className='flex justify-between items-center'>
         <div>
           <h1 className='text-3xl font-bold'>Incident Reports (Hadoop)</h1>
-          <p className='text-muted-foreground'>Log kejadian dari HDFS ({incidents.length} total).</p>
+          <p className='text-muted-foreground'>Log kejadian dari HDFS dalam 1 menit terakhir ({incidents.length} terdeteksi).</p>
         </div>
         <Button onClick={fetchHadoopData} disabled={loading} variant="outline" size="sm">
             <RefreshCcw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
@@ -52,7 +60,7 @@ export default function IncidentsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Semua Insiden</CardTitle>
-          <CardDescription>Riwayat notifikasi dari cluster Hadoop Dataproc.</CardDescription>
+          <CardDescription>Riwayat notifikasi dari cluster Hadoop Dataproc (Filter: 1 Menit Terakhir).</CardDescription>
         </CardHeader>
         <CardContent className='p-0'>
           {loading && incidents.length === 0 ? (
@@ -66,7 +74,7 @@ export default function IncidentsPage() {
                   <TableHead className='px-6'>Waktu Kejadian</TableHead>
                   <TableHead className='px-6'>Device SN</TableHead>
                   <TableHead className='px-6'>Tipe & Acc Force</TableHead>
-                  <TableHead className='px-6'>Status</TableHead>
+                  {/* REVISI FAJRUL: Kolom "Status" (TableHead) sudah dihapus dari sini */}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -92,17 +100,13 @@ export default function IncidentsPage() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className='px-6'>
-                        <Badge variant={inc.status?.toLowerCase() === 'active' ? 'destructive' : 'secondary'}>
-                          {inc.status?.toUpperCase() || 'RESOLVED'}
-                        </Badge>
-                      </TableCell>
+                      {/* REVISI FAJRUL: Kolom isi data Status (TableCell Badge) sudah dihapus total */}
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                      Data tidak ditemukan di Hadoop.
+                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                      Tidak ada insiden baru dalam 1 menit terakhir di Hadoop.
                     </TableCell>
                   </TableRow>
                 )}
