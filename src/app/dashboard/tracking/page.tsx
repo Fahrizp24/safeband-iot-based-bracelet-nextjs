@@ -58,26 +58,31 @@ export default function TrackingPage() {
       const json = await res.json();
       
       if (json.success && json.data.length > 0) {
-        // Karena API sudah mengurutkan data (terbaru di index 0)
-        const latestIncident = json.data[0];
+        // Menyisir array dari indeks 0 (terbaru) ke bawah untuk mencari koordinat asli
+        const fallbackIncident = json.data.find((item: any) => {
+          const lat = parseFloat(item.lat);
+          const lng = parseFloat(item.lng);
+          // Syarat: format angka valid dan bukan koordinat kosongan (0,0)
+          return !isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0);
+        });
         
-        // Cek parse Lat & Lng dari Hadoop CSV
-        const lat = parseFloat(latestIncident.lat);
-        const lng = parseFloat(latestIncident.lng);
-        
-        if (!isNaN(lat) && !isNaN(lng)) {
-          // Hanya update jika koordinat valid
-          if (lat !== 0 || lng !== 0) {
-              setPosition({ lat, lng });
-              setIncidentDetail(latestIncident);
-              
-              let dateStr = 'Unknown';
-              if (latestIncident.timestamp) {
-                 const t = new Date(latestIncident.timestamp);
-                 dateStr = isNaN(t.getTime()) ? latestIncident.timestamp : t.toLocaleString('id-ID');
-              }
-              setLastUpdated(dateStr);
+        // Jika ditemukan log (terbaru maupun log lama) yang punya koordinat asli
+        if (fallbackIncident) {
+          const lat = parseFloat(fallbackIncident.lat);
+          const lng = parseFloat(fallbackIncident.lng);
+          
+          setPosition({ lat, lng });
+          setIncidentDetail(fallbackIncident);
+          
+          let dateStr = 'Unknown';
+          if (fallbackIncident.timestamp) {
+             const t = new Date(fallbackIncident.timestamp);
+             dateStr = isNaN(t.getTime()) ? fallbackIncident.timestamp : t.toLocaleString('id-ID');
           }
+          setLastUpdated(dateStr);
+        } else {
+          // Opsional: Jika seluruh log di Hadoop ternyata bernilai 0,0
+          console.warn("Semua log data GPS untuk device ini bernilai 0,0");
         }
       }
     } catch (error) {
