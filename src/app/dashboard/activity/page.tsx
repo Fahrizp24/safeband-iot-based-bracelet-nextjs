@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCcw, ChevronLeft, ChevronRight, Activity, HeartPulse, Database, MapPin, SlidersHorizontal } from 'lucide-react';
+import { RefreshCcw, ChevronLeft, ChevronRight, Activity, HeartPulse, Database, MapPin } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { db } from '@/lib/firebase';
 import { onSnapshot, doc } from 'firebase/firestore';
@@ -88,7 +88,7 @@ export default function ActivityLogsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   
-  // State Baru: Filter & Sort
+  // State Filter & Sort
   const [filterType, setFilterType] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<string>('NEWEST');
 
@@ -226,13 +226,11 @@ export default function ActivityLogsPage() {
   // PIPELINE PEMROSESAN DATA (FILTERING & SORTING)
   // =======================================================
   const processedLogs = (() => {
-    // 1. Jalankan fungsi Filter
     let result = logs.filter((log) => {
       if (filterType === 'ALL') return true;
       return log.type?.toUpperCase() === filterType.toUpperCase();
     });
 
-    // 2. Jalankan fungsi Sorting
     return result.sort((a, b) => {
       if (sortBy === 'NEWEST') {
         return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
@@ -249,7 +247,6 @@ export default function ActivityLogsPage() {
     });
   })();
 
-  // Hitung ulang pagination berdasarkan data yang telah diproses
   const totalPages = Math.ceil(processedLogs.length / pageSize) || 1;
   const startIndex = (currentPage - 1) * pageSize;
   const paginatedLogs = processedLogs.slice(startIndex, startIndex + pageSize);
@@ -262,7 +259,7 @@ export default function ActivityLogsPage() {
 
   return (
     <div className='w-full p-4 md:p-6 space-y-5'>
-      {/* Header */}
+      {/* Header Halaman */}
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2 border-b border-slate-100'>
         <div>
           <h1 className='text-2xl font-bold tracking-tight text-slate-900'>Activity Logs</h1>
@@ -327,69 +324,65 @@ export default function ActivityLogsPage() {
 
       {/* REPOSITORI REFRESHED CONTAINER */}
       <Card className="w-full border shadow-sm bg-card rounded-xl overflow-hidden">
-        <CardHeader className="p-4 bg-slate-50/40 border-b border-slate-100">
-          <CardTitle className="text-base font-semibold text-slate-900">Riwayat Aktivitas (Hadoop Cluster)</CardTitle>
-          <CardDescription className="text-xs">
-            ID Perangkat: <strong className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-800 text-[11px]">{deviceSn}</strong>
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent className="p-0">
-          {/* TOOLBAR FILTER DAN SORTING */}
+        {/* MERGED HEADER & CONTROL PANEL */}
+        <CardHeader className="p-4 bg-slate-50/50 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-0.5">
+            <CardTitle className="text-base font-semibold text-slate-900">Riwayat Aktivitas (Hadoop Cluster)</CardTitle>
+            <CardDescription className="text-xs">
+              ID Perangkat: <strong className="font-mono bg-slate-200/70 px-1.5 py-0.5 rounded text-slate-800 text-[11px]">{deviceSn || 'Memuat...'}</strong>
+            </CardDescription>
+          </div>
+          
+          {/* Dropdown Filters Terintegrasi di Kanan Header */}
           {!noDevice && logs.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 gap-3 bg-slate-50/20 border-b border-slate-100">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
-                <SlidersHorizontal className="h-3.5 w-3.5 text-slate-400" />
-                <span>Control Panel Data</span>
+            <div className="flex flex-row items-center gap-3 self-end sm:self-auto">
+              {/* Filter Insiden */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground hidden lg:inline">Filter:</span>
+                <Select
+                  value={filterType}
+                  onValueChange={(val) => {
+                    setFilterType(val);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[120px] text-xs bg-white border-slate-200 shadow-sm">
+                    <SelectValue placeholder="Semua Log" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL" className="text-xs">Semua Log</SelectItem>
+                    <SelectItem value="JATUH" className="text-xs">JATUH</SelectItem>
+                    <SelectItem value="WASPADA" className="text-xs">WASPADA</SelectItem>
+                    <SelectItem value="NORMAL" className="text-xs">NORMAL</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              
-              <div className="flex flex-col sm:flex-row items-stretch gap-2">
-                {/* Dropdown Filter Insiden */}
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-muted-foreground shrink-0 hidden sm:inline">Filter:</span>
-                  <Select
-                    value={filterType}
-                    onValueChange={(val) => {
-                      setFilterType(val);
-                      setCurrentPage(1); // Balik ke page 1 biar gak bug offset data kosong
-                    }}
-                  >
-                    <SelectTrigger className="h-8 w-full sm:w-[130px] text-xs bg-white">
-                      <SelectValue placeholder="Semua Insiden" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL" className="text-xs">Semua Log</SelectItem>
-                      <SelectItem value="JATUH" className="text-xs">JATUH</SelectItem>
-                      <SelectItem value="WASPADA" className="text-xs">WASPADA</SelectItem>
-                      <SelectItem value="NORMAL" className="text-xs">NORMAL</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
 
-                {/* Dropdown Sorting Data */}
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-muted-foreground shrink-0 hidden sm:inline">Urutan:</span>
-                  <Select
-                    value={sortBy}
-                    onValueChange={(val) => {
-                      setSortBy(val);
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <SelectTrigger className="h-8 w-full sm:w-[150px] text-xs bg-white">
-                      <SelectValue placeholder="Waktu Terbaru" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="NEWEST" className="text-xs">Waktu Terbaru</SelectItem>
-                      <SelectItem value="OLDEST" className="text-xs">Waktu Terlama</SelectItem>
-                      <SelectItem value="FORCE_HIGHEST" className="text-xs">Tekanan Tertinggi (G)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Sorting Data */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground hidden lg:inline">Urutan:</span>
+                <Select
+                  value={sortBy}
+                  onValueChange={(val) => {
+                    setSortBy(val);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-[140px] text-xs bg-white border-slate-200 shadow-sm">
+                    <SelectValue placeholder="Waktu Terbaru" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NEWEST" className="text-xs">Waktu Terbaru</SelectItem>
+                    <SelectItem value="OLDEST" className="text-xs">Waktu Terlama</SelectItem>
+                    <SelectItem value="FORCE_HIGHEST" className="text-xs">Tekanan Tertinggi</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}
-
+        </CardHeader>
+        
+        <CardContent className="p-0">
           {loading && logs.length === 0 ? (
              <div className="flex flex-col items-center justify-center p-12 text-muted-foreground">
                <Icons.spinner className="h-6 w-6 animate-spin mb-3" />
@@ -407,21 +400,21 @@ export default function ActivityLogsPage() {
               {/* LAYOUT A: DESKTOP TABLE VIEW */}
               <div className='hidden md:block w-full overflow-x-auto'>
                 <Table>
-                  <TableHeader className="bg-slate-50/80 sticky top-0">
-                    <TableRow className="hover:bg-transparent border-b border-slate-200">
-                      <TableHead className="w-[20%] h-10 text-xs font-semibold text-slate-700 px-4">Waktu Kejadian</TableHead>
-                      <TableHead className="w-[18%] h-10 text-xs font-semibold text-slate-700 px-4">Jenis Insiden</TableHead>
-                      <TableHead className="w-[25%] h-10 text-xs font-semibold text-slate-700 px-4">Kondisi Tekanan</TableHead>
-                      <TableHead className="w-[37%] h-10 text-xs font-semibold text-slate-700 px-4">Lokasi (Kecamatan, Kota)</TableHead>
+                  <TableHeader className="bg-slate-50/40 sticky top-0 border-b border-slate-100">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-[20%] h-9 text-xs font-semibold text-slate-600 px-4">Waktu Kejadian</TableHead>
+                      <TableHead className="w-[18%] h-9 text-xs font-semibold text-slate-600 px-4">Jenis Insiden</TableHead>
+                      <TableHead className="w-[25%] h-9 text-xs font-semibold text-slate-600 px-4">Kondisi Tekanan</TableHead>
+                      <TableHead className="w-[37%] h-9 text-xs font-semibold text-slate-600 px-4">Lokasi (Kecamatan, Kota)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedLogs.map((log) => {
                       const forceStatus = getForceStatus(log.accelerometerForce);
                       return (
-                        <TableRow key={log.id} className="hover:bg-slate-50/50 transition-colors border-b border-slate-100/80">
-                          <TableCell className="font-mono text-xs text-slate-600 py-3 px-4 align-middle">{log.date}</TableCell>
-                          <TableCell className="py-3 px-4 align-middle">
+                        <TableRow key={log.id} className="hover:bg-slate-50/40 transition-colors border-b border-slate-100/70">
+                          <TableCell className="font-mono text-xs text-slate-600 py-2.5 px-4 align-middle">{log.date}</TableCell>
+                          <TableCell className="py-2.5 px-4 align-middle">
                             <Badge 
                               variant="outline"
                               className={
@@ -435,7 +428,7 @@ export default function ActivityLogsPage() {
                                {log.type ? log.type.toUpperCase() : 'NORMAL'}
                             </Badge>
                           </TableCell>
-                          <TableCell className="py-3 px-4 align-middle">
+                          <TableCell className="py-2.5 px-4 align-middle">
                             <div className="flex items-center gap-2">
                               <Badge variant="outline" className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium ${forceStatus.style}`}>
                                 {forceStatus.label}
@@ -447,7 +440,7 @@ export default function ActivityLogsPage() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className="py-3 px-4 align-middle">
+                          <TableCell className="py-2.5 px-4 align-middle">
                             <LocationCell lat={log.lat} lng={log.lng} />
                           </TableCell>
                         </TableRow>
@@ -463,7 +456,6 @@ export default function ActivityLogsPage() {
                   const forceStatus = getForceStatus(log.accelerometerForce);
                   return (
                     <div key={log.id} className="p-3 flex flex-col gap-1.5 hover:bg-slate-50/40 transition-colors">
-                      {/* Baris Atas: Waktu & Badge Insiden */}
                       <div className="flex items-center justify-between">
                         <span className="font-mono text-[11px] font-medium text-slate-500">
                           {log.date}
@@ -482,9 +474,7 @@ export default function ActivityLogsPage() {
                         </Badge>
                       </div>
                       
-                      {/* Baris Bawah: Kondisi Sensor & Lokasi Deteksi */}
                       <div className="flex items-center justify-between gap-4">
-                        {/* Kondisi Sensor */}
                         <div className="flex items-center gap-1 shrink-0">
                           <Badge variant="outline" className={`text-[10px] px-2 py-0.5 rounded-full font-normal ${forceStatus.style}`}>
                             {forceStatus.label}
@@ -495,8 +485,6 @@ export default function ActivityLogsPage() {
                             </span>
                           )}
                         </div>
-                        
-                        {/* Lokasi Custom OSMap */}
                         <LocationCell lat={log.lat} lng={log.lng} />
                       </div>
                     </div>
@@ -526,7 +514,7 @@ export default function ActivityLogsPage() {
                   setCurrentPage(1);
                 }}
               >
-                <SelectTrigger className="h-7 w-[65px] text-xs bg-white">
+                <SelectTrigger className="h-7 w-[65px] text-xs bg-white border-slate-200">
                   <SelectValue placeholder={pageSize.toString()} />
                 </SelectTrigger>
                 <SelectContent side="top">
@@ -547,7 +535,7 @@ export default function ActivityLogsPage() {
               <div className="flex items-center space-x-1">
                 <Button
                   variant="outline"
-                  className="h-7 w-7 p-0 shadow-sm bg-white"
+                  className="h-7 w-7 p-0 shadow-sm bg-white border-slate-200"
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage <= 1}
                 >
@@ -555,7 +543,7 @@ export default function ActivityLogsPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="h-7 w-7 p-0 shadow-sm bg-white"
+                  className="h-7 w-7 p-0 shadow-sm bg-white border-slate-200"
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage >= totalPages}
                 >
