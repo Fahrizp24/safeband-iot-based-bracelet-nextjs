@@ -6,9 +6,8 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const deviceId = searchParams.get('deviceId');
 
-    // URL WebHDFS untuk membaca file logs.csv
-    // Membaca file logs.csv dari Gateway Flask (port 5000)
-    const url = 'http://35.198.205.239:5000/logs';
+    // URL WebHDFS untuk membaca file logs.csv melalui Gateway Flask (port 5000)
+    const url = 'http://34.21.221.184:5000/logs';
 
     // Memanggil API tanpa caching, sehingga selalu mengambil data HDFS yang terbaru
     const response = await fetch(url, { cache: 'no-store' });
@@ -22,8 +21,8 @@ export async function GET(request: NextRequest) {
     // Memilah file berdasarkan baris baru
     const lines = csvText.split('\n').filter(line => line.trim() !== '');
     
-    // Asumsi format kolom CSV yang ditulis gateway sesuai dengan payload ESP32:
-    // Kolom: timestamp, deviceSn, type, accelerometerForce, status, latitude, longitude
+    // BARU: Format kolom CSV yang ditulis gateway (6 kolom):
+    // Indeks: 0=timestamp, 1=deviceSn, 2=type, 3=accelerometerForce, 4=latitude, 5=longitude
     const incidents = lines.map((line, index) => {
       const cols = line.split(',');
       return {
@@ -32,9 +31,8 @@ export async function GET(request: NextRequest) {
         deviceSn: cols[1]?.trim() || '',
         type: cols[2]?.trim() || '',
         accelerometerForce: cols[3]?.trim() || '',
-        status: cols[4]?.trim() || '',
-        lat: cols[5]?.trim() || '',
-        lng: cols[6]?.trim() || ''
+        lat: cols[4]?.trim() || '', // Naik ke indeks 4
+        lng: cols[5]?.trim() || ''  // Naik ke indeks 5
       };
     });
 
