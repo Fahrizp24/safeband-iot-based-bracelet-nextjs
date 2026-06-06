@@ -13,8 +13,6 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import 'leaflet/dist/leaflet.css';
 
-// Fix for Leaflet default icon issue in Next.js
-import L from 'leaflet';
 
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
@@ -95,18 +93,20 @@ export default function TrackingPage() {
   useEffect(() => {
     if (status !== 'authenticated' || !session?.user?.email) return;
 
-    // Fix icon issue
-    const DefaultIcon = L.icon({
-      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      tooltipAnchor: [16, -28],
-      shadowSize: [41, 41]
+    // Fix icon issue by importing leaflet dynamically
+    import('leaflet').then((L) => {
+      const DefaultIcon = L.icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        tooltipAnchor: [16, -28],
+        shadowSize: [41, 41]
+      });
+      L.Marker.prototype.options.icon = DefaultIcon;
     });
-    L.Marker.prototype.options.icon = DefaultIcon;
 
     // Listen to user setting to get deviceSn dynamically
     const userUnsub = onSnapshot(doc(db, 'users', session.user.email), (userDoc) => {
