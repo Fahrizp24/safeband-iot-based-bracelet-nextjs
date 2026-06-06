@@ -47,21 +47,18 @@ export async function register() {
         if (snapshot.empty || snapshot.docChanges().length === 0) return;
 
         for (const change of snapshot.docChanges()) {
-          // Menggunakan 'added' dan 'modified' untuk mengantisipasi alat yang baru dinyalakan/langsung danger
           if (change.type === 'modified' || change.type === 'added') {
             const deviceData = change.doc.data();
             const deviceSn = change.doc.id;
             
-            // Berdasarkan gambar 1, field status bernama 'condition' (bernilai "SAFE" atau mungkin "FALL"/"DANGER")
-            // Kamu bisa sesuaikan, di sini saya cek case-insensitive agar aman
-            const currentCondition = deviceData?.condition?.toLowerCase();
+            // PERBAIKAN 1: Membaca 'fallStatus' atau 'condition' dari IoT secara fleksibel
+            const currentCondition = (deviceData?.fallStatus || deviceData?.condition || '').toLowerCase();
 
-            if (currentCondition === 'danger' || currentCondition === 'fall' || deviceData?.fallStatus === 'danger') {
+            if (currentCondition === 'danger' || currentCondition === 'fall') {
               console.log(`🚨 [ALERT DETECTED] Status Device ${deviceSn} dalam kondisi BAHAYA!`);
 
               try {
-                // Berikan jeda sedikit (misal 1-2 detik) agar data di collection 'incidents' 
-                // dari hardware ESP32 sempat masuk terlebih dahulu ke Firestore.
+                // Berikan jeda sedikit (1.5 detik) agar data insiden dari MQTT masuk ke Firestore
                 await new Promise((resolve) => setTimeout(resolve, 1500));
 
                 // 1. Ambil data insiden terakhir untuk device terkait
@@ -80,8 +77,6 @@ export async function register() {
                 const incidentData = lastIncidentDoc.data();
                 const incidentId = lastIncidentDoc.id;
 
-                // Berdasarkan Gambar 3, dokumen di collection 'users' menggunakan ID email langsung 
-                // dan di Gambar 1 device menyimpan field 'userId' berisi email tersebut
                 const userEmail = deviceData?.userId;
                 if (!userEmail) {
                   console.log(`[WORKER] Device ${deviceSn} tidak memiliki userId (email).`);
@@ -99,21 +94,25 @@ export async function register() {
                 const forceVal = incidentData?.accelerometerForce ? Number(incidentData.accelerometerForce).toFixed(2) : "-";
                 const tiltVal = incidentData?.tilt ? Number(incidentData.tilt).toFixed(1) : "-";
                 const timeVal = incidentData?.timestamp || new Date().toLocaleString('id-ID');
-                const lat = incidentData?.latitude ?? -7.94374333;
-                const lng = incidentData?.longitude ?? 112.6146443;
+                
+                // PERBAIKAN 2: Sesuaikan pembacaan nested object 'coordinates' dari IoT ESP32
+                const lat = incidentData?.coordinates?.latitude ?? incidentData?.latitude ?? -7.94374333;
+                const lng = incidentData?.coordinates?.longitude ?? incidentData?.longitude ?? 112.6146443;
 
-                // FIX TYPO: Perbaikan format link Google Maps asli
-                const googleMapsLink = `https://maps.google.com/?q=${lat},${lng}`;
+                // PERBAIKAN 3: Membetulkan format Link Google Maps asli agar bisa diklik langsung di Telegram
+                const googleMapsLink = `https://www.google.com/maps?q=${lat},${lng}`;
 
                 // -------------------------------------------------------------------------
                 // 3. SETTING TELEGRAM BOT API
                 // -------------------------------------------------------------------------
-                const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN; // GANTI DENGAN TOKEN ASLI
-                
-                // Ambil Chat ID dinamis dari data user jika ada, jika tidak ada pakai fallback default
+                const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN; 
                 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID; 
 
-                // Susun format pesan menggunakan Markdown gaya Telegram (Gunakan '*' untuk tebal)
+                if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+                  console.error("❌ [TELEGRAM ERROR] Token atau Chat ID belum dikonfigurasi di file .env");
+                  continue;
+                }
+
                 const telegramMessage = 
 `🚨 *PERINGATAN INSIDEN JATUH (SOS)* 🚨
 --------------------------------------------------
