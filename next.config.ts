@@ -17,7 +17,7 @@ const baseConfig: NextConfig = {
   transpilePackages: ['geist'],
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production'
-  }
+  },
 };
 
 let configWithPlugins = baseConfig;

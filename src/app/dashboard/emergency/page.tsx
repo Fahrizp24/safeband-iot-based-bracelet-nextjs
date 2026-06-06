@@ -44,15 +44,37 @@ export default function EmergencySetupPage() {
   const handleSave = async () => {
     if (!session?.user?.email) return;
     
+    // Trik Pembersihan Nomor untuk WhatsApp Gateway (Fonnte)
+    let formattedContact = contact.trim();
+    
+    // 1. Hapus karakter non-angka seperti +, spasi, atau strip
+    formattedContact = formattedContact.replace(/[^0-9]/g, '');
+    
+    // 2. Jika diawali angka '0', ubah menjadi '62'
+    if (formattedContact.startsWith('0')) {
+      formattedContact = '62' + formattedContact.substring(1);
+    }
+    
+    // 3. Validasi minimal panjang nomor HP standar
+    if (formattedContact.length < 10) {
+      toast.error('Format nomor telepon tidak valid.');
+      return;
+    }
+
     setIsSaving(true);
     try {
       const docRef = doc(db, 'users', session.user.email);
-      // Simpan ke 'emergencyContact' dan update 'emergencyContacts' (array) agar kompatibel
+      
+      // Simpan nomor yang sudah rapi (format 628xxx) ke Firestore
       await updateDoc(docRef, {
-        emergencyContact: contact.trim(),
-        emergencyContacts: [contact.trim()]
+        emergencyContact: formattedContact,
+        emergencyContacts: [formattedContact]
       });
-      toast.success('Kontak darurat berhasil diperbarui.');
+      
+      // Update state local agar UI sinkron menampilkan nomor yang sudah rapi
+      setContact(formattedContact);
+      
+      toast.success('Kontak darurat berhasil diperbarui (Format WhatsApp Terkompatibilitas).');
     } catch (error) {
       console.error(error);
       toast.error('Gagal memperbarui kontak.');
