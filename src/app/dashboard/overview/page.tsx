@@ -111,21 +111,20 @@ export default function CustomerOverview() {
       // sekaligus memperbarui nilainya jika sudah ada.
       await setDoc(deviceRef, {
         fallStatus: 'safe',
-        condition: 'SAFE' // Update condition agar status card kembali ke 'A M A N'
       }, { merge: true });
     } catch (error) {
       console.error("Gagal mengupdate status insiden:", error);
     }
   };
 
-  // Adjust condition cases: "safe" and "SAFE" support
-  const cond = sensorData?.condition?.toUpperCase();
+  // Adjust fallstatus cases: "safe" and "SAFE" support
+  const cond = sensorData?.fallStatus?.toUpperCase();
   const dangerKeywords = ['FALL', 'DANGER', 'FALL DETECTED', 'FALL_DETECTED'];
   
   // Lanjut: Web kondisi "BAHAYA" kalau ada tiket incident "open" !
   const isDanger = dangerKeywords.includes(cond) || hasOpenIncident;
   const isSafe = !isDanger && cond === 'SAFE';
-  const hasNoInfo = !sensorData?.condition && !hasOpenIncident;
+  const hasNoInfo = !sensorData?.fallStatus && !hasOpenIncident;
   
   const formattedLastUpdated = sensorData?.lastUpdated 
     ? (typeof sensorData.lastUpdated.toDate === 'function' 
