@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Battery, Activity, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { Icons } from '@/components/icons';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -103,14 +103,28 @@ export default function CustomerOverview() {
     );
   }
 
-  // Adjust condition cases: "safe" and "SAFE" support
-  const cond = sensorData?.condition?.toUpperCase();
+  const handleResolveIncident = async () => {
+    if (!deviceSn) return;
+    try {
+      const deviceRef = doc(db, 'devices', deviceSn);
+      // Menggunakan setDoc dengan merge: true akan membuat kolom/field jika belum ada,
+      // sekaligus memperbarui nilainya jika sudah ada.
+      await setDoc(deviceRef, {
+        fallStatus: 'safe',
+      }, { merge: true });
+    } catch (error) {
+      console.error("Gagal mengupdate status insiden:", error);
+    }
+  };
+
+  // Adjust fallstatus cases: "safe" and "SAFE" support
+  const cond = sensorData?.fallStatus?.toUpperCase();
   const dangerKeywords = ['FALL', 'DANGER', 'FALL DETECTED', 'FALL_DETECTED'];
   
   // Lanjut: Web kondisi "BAHAYA" kalau ada tiket incident "open" !
   const isDanger = dangerKeywords.includes(cond) || hasOpenIncident;
   const isSafe = !isDanger && cond === 'SAFE';
-  const hasNoInfo = !sensorData?.condition && !hasOpenIncident;
+  const hasNoInfo = !sensorData?.fallStatus && !hasOpenIncident;
   
   const formattedLastUpdated = sensorData?.lastUpdated 
     ? (typeof sensorData.lastUpdated.toDate === 'function' 
@@ -143,6 +157,13 @@ export default function CustomerOverview() {
                 <AlertTriangle className='w-24 h-24 text-red-500 mb-4 animate-pulse' />
                 <h2 className='text-4xl font-bold text-red-700 tracking-tight animate-bounce text-center'>BAHAYA (JATUH) !</h2>
                 <p className='text-red-600 mt-2 font-medium text-center'>Terdeteksi insiden jatuh!<br />Segera lakukan pertolongan atau hubungi nomor darurat.</p>
+                <Button 
+                  onClick={handleResolveIncident}
+                  variant="destructive" 
+                  className="mt-6 font-bold py-2 px-6 rounded-full shadow-lg transition-transform hover:scale-105"
+                >
+                  Insiden Teratasi
+                </Button>
               </>
             ) : (
               <>

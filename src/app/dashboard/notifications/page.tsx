@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Bell, AlertTriangle, Info, BatteryWarning } from 'lucide-react';
+import { Bell, AlertTriangle, Info, BatteryWarning, Megaphone } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, getDoc, doc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, getDoc, doc, or } from 'firebase/firestore';
 import { Icons } from '@/components/icons';
 
 export default function NotificationsPage() {
@@ -16,38 +16,43 @@ export default function NotificationsPage() {
   useEffect(() => {
     if (status !== 'authenticated' || !session?.user?.email) return;
 
-    // First fetch user's deviceSn, or we can just fetch notifications by userId
-    // Getting deviceSn ensures we only see notifications for connected devices
     const fetchNotifications = async () => {
       const userRef = doc(db, 'users', session.user.email as string);
       const userSnap = await getDoc(userRef);
       const userSn = userSnap.exists() ? userSnap.data().deviceSn : null;
 
-      // Bypass orderBy untuk mencegah kebutuhan klik Composite Index Firebase
-      // Tambahkan 'in' operator agar aman dari huruf besar/kecil (Case Insensitive)
       let notifQuery: any;
       
       if (userSn) {
         const userSnUpper = userSn.toUpperCase();
         const userSnLower = userSn.toLowerCase();
+        
+        // MODIFIKASI: Menggunakan operator 'or' agar notifikasi umum (isGlobal: true) 
+        // tetap muncul meskipun perangkat userSn tidak ditulis di dokumen tersebut.
         notifQuery = query(
           collection(db, 'notifications'), 
-          where('deviceSn', 'in', [userSn, userSnUpper, userSnLower])
+          or(
+            where('deviceSn', 'in', [userSn, userSnUpper, userSnLower]),
+            where('isGlobal', '==', true)
+          )
         );
       } else {
         notifQuery = query(
           collection(db, 'notifications'), 
-          where('userId', '==', session.user.email)
+          or(
+            where('userId', '==', session.user.email),
+            where('isGlobal', '==', true)
+          )
         );
       }
 
       const unsub = onSnapshot(notifQuery, (snapshot: any) => {
         const notifData = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
         
-        // Sorting secara manual di client (Javascript) agar tidak memberatkan Firestore
+        // Sorting berdasarkan createdAt atau kebalikannya jika menggunakan timestamp manual
         notifData.sort((a: any, b: any) => {
-           const timeA = new Date(a.createdAt as string).getTime() || 0;
-           const timeB = new Date(b.createdAt as string).getTime() || 0;
+           const timeA = new Date(a.createdAt || a.timestamp).getTime() || 0;
+           const timeB = new Date(b.createdAt || b.timestamp).getTime() || 0;
            return timeB - timeA;
         });
         
@@ -71,19 +76,23 @@ export default function NotificationsPage() {
     };
   }, [session, status]);
 
+  // MODIFIKASI: Menambahkan tipe 'broadcast' sesuai data Firebase Anda
   const getIcon = (type: string) => {
     switch (type) {
       case 'danger': return AlertTriangle;
       case 'warning': return BatteryWarning;
+      case 'broadcast': return Megaphone; // Ikon Toa/Pengumuman
       case 'info':
       default: return Info;
     }
   };
 
+  // MODIFIKASI: Menambahkan warna ungu/indigo untuk broadcast sistem
   const getColor = (type: string) => {
     switch (type) {
       case 'danger': return 'text-red-500';
       case 'warning': return 'text-orange-500';
+      case 'broadcast': return 'text-indigo-500'; 
       case 'info': return 'text-blue-500';
       default: return 'text-gray-500';
     }
@@ -117,19 +126,19 @@ export default function NotificationsPage() {
               const IconComp = getIcon(notif.type);
               const colorClass = getColor(notif.type);
               
-              // Formatting time
               let timeStr = 'Baru saja';
-              if (notif.createdAt) {
-                const date = new Date(notif.createdAt);
-                timeStr = isNaN(date.getTime()) ? notif.createdAt : date.toLocaleString('id-ID');
+              const targetTime = notif.createdAt || notif.timestamp;
+              if (targetTime) {
+                const date = new Date(targetTime);
+                timeStr = isNaN(date.getTime()) ? targetTime : date.toLocaleString('id-ID');
               }
               
               return (
-                <div key={notif.id} className='flex items-start gap-4 p-4 border rounded-md'>
+                <div key={notif.id} className='flex items-start gap-4 p-4 border rounded-md shadow-sm hover:bg-muted/30 transition-colors'>
                   <div className={`mt-1 ${colorClass}`}>
                     <IconComp className='h-6 w-6' />
                   </div>
-                  <div>
+                  <div className='flex-1'>
                     <h4 className='font-semibold'>{notif.title}</h4>
                     <p className='text-sm text-muted-foreground'>{notif.message}</p>
                     <p className='text-xs text-gray-400 mt-1'>{timeStr}</p>
