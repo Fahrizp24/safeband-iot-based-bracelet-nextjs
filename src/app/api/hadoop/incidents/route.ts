@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const deviceId = searchParams.get('deviceId');
 
     // URL WebHDFS untuk membaca file logs.csv melalui Gateway Flask (port 5000)
-    const url = 'http://34.177.97.208:5000/logs';
+    const url = 'http://34.142.165.126:5000/logs';
 
     // Memanggil API tanpa caching, sehingga selalu mengambil data HDFS yang terbaru
     const response = await fetch(url, { cache: 'no-store' });
