@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCcw, ChevronLeft, ChevronRight, Activity, HeartPulse, Database, MapPin } from 'lucide-react';
+import { RefreshCcw, ChevronLeft, ChevronRight, Activity, HeartPulse, Database, MapPin, Calendar } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { db } from '@/lib/firebase';
 import { onSnapshot, doc } from 'firebase/firestore';
@@ -92,15 +92,19 @@ export default function ActivityLogsPage() {
   const [filterType, setFilterType] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<string>('NEWEST');
 
+  // State Tambahan: Range Tanggal (Format: YYYY-MM-DD)
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+
   const getForceStatus = (forceStr: string) => {
     const force = parseFloat(forceStr);
     if (isNaN(force) || forceStr === '' || force === 0) {
       return { label: 'Data Loss', style: 'bg-slate-50 text-slate-500 border-slate-200' };
     }
-    if (force > 2.5) {
+    if (force > 1.2) {
       return { label: 'Benturan Tinggi', style: 'bg-rose-50 text-rose-700 border-rose-200 font-semibold' };
     }
-    if (force > 1.5) {
+    if (force > 0.9) {
       return { label: 'Guncangan', style: 'bg-amber-50 text-amber-700 border-amber-200' };
     }
     return { label: 'Aman', style: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
@@ -222,13 +226,41 @@ export default function ActivityLogsPage() {
     }
   }, [logs]);
 
+  // Fungsi Reset Parameter Filter Tanggal
+  const resetDateFilter = () => {
+    setStartDate('');
+    setEndDate('');
+    setCurrentPage(1);
+  };
+
   // =======================================================
   // PIPELINE PEMROSESAN DATA (FILTERING & SORTING)
   // =======================================================
   const processedLogs = (() => {
     let result = logs.filter((log) => {
-      if (filterType === 'ALL') return true;
-      return log.type?.toUpperCase() === filterType.toUpperCase();
+      // 1. Filter Berdasarkan Jenis Insiden
+      if (filterType !== 'ALL' && log.type?.toUpperCase() !== filterType.toUpperCase()) {
+        return false;
+      }
+
+      // 2. Filter Berdasarkan Range Tanggal (Jika diinputkan)
+      if (log.timestamp) {
+        const logDate = new Date(log.timestamp);
+        
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          if (logDate < start) return false;
+        }
+        
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (logDate > end) return false;
+        }
+      }
+
+      return true;
     });
 
     return result.sort((a, b) => {
@@ -325,7 +357,7 @@ export default function ActivityLogsPage() {
       {/* REPOSITORI REFRESHED CONTAINER */}
       <Card className="w-full border shadow-sm bg-card rounded-xl overflow-hidden">
         {/* MERGED HEADER & CONTROL PANEL */}
-        <CardHeader className="p-4 bg-slate-50/50 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <CardHeader className="p-4 bg-slate-50/50 border-b border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
           <div className="space-y-0.5">
             <CardTitle className="text-base font-semibold text-slate-900">Riwayat Aktivitas (Hadoop Cluster)</CardTitle>
             <CardDescription className="text-xs">
@@ -333,51 +365,90 @@ export default function ActivityLogsPage() {
             </CardDescription>
           </div>
           
-          {/* Dropdown Filters Terintegrasi di Kanan Header */}
+          {/* Dropdown Filters & Date Range Picker */}
           {!noDevice && logs.length > 0 && (
-            <div className="flex flex-row items-center gap-3 self-end sm:self-auto">
-              {/* Filter Insiden */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-muted-foreground hidden lg:inline">Filter:</span>
-                <Select
-                  value={filterType}
-                  onValueChange={(val) => {
-                    setFilterType(val);
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full xl:w-auto justify-end">
+              
+              {/* INPUT RANGE TANGGAL (SUDAH DIUBAH JADI KOTAK / ROUNDED-MD) */}
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto bg-white px-3 py-1.5 rounded-md border border-slate-200 shadow-sm h-8">
+                <div className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                  <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                  <span>Periode:</span>
+                </div>
+                <input 
+                  type="date" 
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
                     setCurrentPage(1);
                   }}
-                >
-                  <SelectTrigger className="h-8 w-[120px] text-xs bg-white border-slate-200 shadow-sm">
-                    <SelectValue placeholder="Semua Log" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL" className="text-xs">Semua Log</SelectItem>
-                    <SelectItem value="JATUH" className="text-xs">JATUH</SelectItem>
-                    <SelectItem value="WASPADA" className="text-xs">WASPADA</SelectItem>
-                    <SelectItem value="NORMAL" className="text-xs">NORMAL</SelectItem>
-                  </SelectContent>
-                </Select>
+                  className="text-xs font-medium text-slate-700 bg-transparent outline-none focus:ring-0 cursor-pointer border-0 p-0 w-[110px]"
+                />
+                <span className="text-xs text-slate-400 font-medium px-0.5">s/d</span>
+                <input 
+                  type="date" 
+                  value={endDate}
+                  onChange={(e) => {
+                    setEndDate(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="text-xs font-medium text-slate-700 bg-transparent outline-none focus:ring-0 cursor-pointer border-0 p-0 w-[110px]"
+                />
+                {(startDate || endDate) && (
+                  <button 
+                    onClick={resetDateFilter}
+                    className="text-[10px] text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100/80 px-1.5 py-0.5 rounded font-medium transition-colors ml-1"
+                  >
+                    Reset
+                  </button>
+                )}
               </div>
 
-              {/* Sorting Data */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-muted-foreground hidden lg:inline">Urutan:</span>
-                <Select
-                  value={sortBy}
-                  onValueChange={(val) => {
-                    setSortBy(val);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-[140px] text-xs bg-white border-slate-200 shadow-sm">
-                    <SelectValue placeholder="Waktu Terbaru" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NEWEST" className="text-xs">Waktu Terbaru</SelectItem>
-                    <SelectItem value="OLDEST" className="text-xs">Waktu Terlama</SelectItem>
-                    <SelectItem value="FORCE_HIGHEST" className="text-xs">Tekanan Tertinggi</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="flex flex-row items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                {/* Filter Insiden */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-muted-foreground hidden lg:inline">Filter:</span>
+                  <Select
+                    value={filterType}
+                    onValueChange={(val) => {
+                      setFilterType(val);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-[115px] text-xs bg-white border-slate-200 shadow-sm">
+                      <SelectValue placeholder="Semua Log" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL" className="text-xs">Semua Log</SelectItem>
+                      <SelectItem value="JATUH" className="text-xs">JATUH</SelectItem>
+                      <SelectItem value="WASPADA" className="text-xs">WASPADA</SelectItem>
+                      <SelectItem value="NORMAL" className="text-xs">NORMAL</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Sorting Data */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-muted-foreground hidden lg:inline">Urutan:</span>
+                  <Select
+                    value={sortBy}
+                    onValueChange={(val) => {
+                      setSortBy(val);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-[130px] text-xs bg-white border-slate-200 shadow-sm">
+                      <SelectValue placeholder="Waktu Terbaru" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NEWEST" className="text-xs">Waktu Terbaru</SelectItem>
+                      <SelectItem value="OLDEST" className="text-xs">Waktu Terlama</SelectItem>
+                      <SelectItem value="FORCE_HIGHEST" className="text-xs">Tekanan Tertinggi</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
             </div>
           )}
         </CardHeader>
