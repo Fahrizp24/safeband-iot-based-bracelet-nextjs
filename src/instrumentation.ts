@@ -1,3 +1,5 @@
+// src/instrumentation.ts
+
 import * as Sentry from '@sentry/nextjs';
 
 const sentryOptions: Sentry.NodeOptions | Sentry.EdgeOptions = {
@@ -7,6 +9,7 @@ const sentryOptions: Sentry.NodeOptions | Sentry.EdgeOptions = {
   tracesSampleRate: 1,
   debug: false
 };
+
 
 export async function register() {
   if (!process.env.NEXT_PUBLIC_SENTRY_DISABLED) {
