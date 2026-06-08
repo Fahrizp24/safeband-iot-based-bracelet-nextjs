@@ -1,30 +1,44 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash2, Edit2, Loader2, SlidersHorizontal, ArrowUpDown, Search, UserCheck } from 'lucide-react';
+import { Trash2, Edit2, Loader2, SlidersHorizontal, ArrowUpDown, Search, UserCheck, UserPlus } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, doc, deleteDoc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, deleteDoc, updateDoc, addDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([]);
+  const [devices, setDevices] = useState<any[]>([]); // State baru untuk menampung semua device
   const [loading, setLoading] = useState(true);
+  
+  // State untuk Edit User
   const [editingUser, setEditingUser] = useState<any>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
 
-  // State Baru untuk Fitur Searching, Filtering, & Sorting
+  // State Baru untuk Tambah User
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    role: 'customer',
+    deviceSn: ''
+  });
+
+  // State untuk Fitur Searching, Filtering, & Sorting
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [sortBy, setSortBy] = useState('name'); // name, email, deviceSn, role
   const [sortOrder, setSortOrder] = useState('asc'); // asc, desc
 
+  // Listener data Users
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'users'), (snap) => {
       const usersData = snap.docs.map(d => ({
@@ -36,6 +50,35 @@ export default function AdminUsersPage() {
     });
     return () => unsub();
   }, []);
+
+  // Listener data Devices secara realtime
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'devices'), (snap) => {
+      const devicesData = snap.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+      }));
+      setDevices(devicesData);
+    });
+    return () => unsub();
+  }, []);
+
+  // Mendapatkan daftar SN device yang sudah dipakai oleh user manapun
+  const takenDeviceSns = users
+    .map((u) => u.deviceSn)
+    .filter((sn) => sn && sn !== '');
+
+  // Filter device untuk Form Tambah (hanya yang belum dipakai)
+  const availableDevicesForAdd = devices.filter(
+    (d) => !takenDeviceSns.includes(d.id)
+  );
+
+  // Filter device untuk Form Edit (yang belum dipakai + device milik user itu sendiri saat ini)
+  const getAvailableDevicesForEdit = (currentUserDeviceSn: string) => {
+    return devices.filter(
+      (d) => !takenDeviceSns.includes(d.id) || d.id === currentUserDeviceSn
+    );
+  };
 
   const handleDelete = async (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus user ini?')) {
@@ -58,33 +101,52 @@ export default function AdminUsersPage() {
     setIsEditOpen(true);
   };
 
+  // --- LOGIKA TAMBAH USER ---
+  const handleAddUser = async () => {
+    if (!newUser.name.trim()) {
+      toast.error('Nama wajib diisi!');
+      return;
+    }
+    if (!newUser.email.trim()) {
+      toast.error('Email wajib diisi!');
+      return;
+    }
+
+    setAddLoading(true);
+    try {
+      await addDoc(collection(db, 'users'), {
+        name: newUser.name,
+        email: newUser.email.toLowerCase(),
+        role: newUser.role,
+        deviceSn: newUser.deviceSn || '', // Langsung simpan string kosong jika memilih "Tanpa Device"
+        createdAt: new Date().toISOString()
+      });
+
+      toast.success('User baru berhasil ditambahkan');
+      setIsAddOpen(false);
+      setNewUser({ name: '', email: '', role: 'customer', deviceSn: '' }); // Reset Form
+    } catch (err) {
+      toast.error('Gagal menambahkan user baru');
+      console.error(err);
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
+  // --- LOGIKA UPDATE USER ---
   const handleUpdateUser = async () => {
     if (!editingUser.name?.trim()) {
       toast.error('Nama wajib diisi!');
       return;
     }
-    if (editingUser.deviceSn && !editingUser.deviceSn.toUpperCase().startsWith('ESP32-')) {
-      toast.error("Format Device ID tidak valid. Harus diawali dengan 'ESP32-'");
-      return;
-    }
 
     setUpdateLoading(true);
     try {
-      if (editingUser.deviceSn) {
-        const deviceRef = doc(db, 'devices', editingUser.deviceSn);
-        const deviceSnap = await getDoc(deviceRef);
-        if (deviceSnap.exists() && deviceSnap.data().userId !== editingUser.id) {
-          toast.error('Device ID sudah terdaftar pada akun lain');
-          setUpdateLoading(false);
-          return;
-        }
-      }
-
       const userRef = doc(db, 'users', editingUser.id);
       await updateDoc(userRef, {
         name: editingUser.name || '',
         role: editingUser.role || 'customer',
-        deviceSn: editingUser.deviceSn || ''
+        deviceSn: editingUser.deviceSn || '' // Menyimpan pilihan dropdown (bisa kosong)
       });
       toast.success('Data user berhasil diperbarui');
       setIsEditOpen(false);
@@ -99,12 +161,10 @@ export default function AdminUsersPage() {
   // --- LOGIKA UTAMA FILTERING DAN SORTING DATA ---
   const processedUsers = users
     .filter((user) => {
-      // 1. Filter Berdasarkan Role
       const userRole = (user.role || 'customer').toLowerCase();
       if (filterRole !== 'all' && userRole !== filterRole.toLowerCase()) {
         return false;
       }
-      // 2. Real-time Search (Nama atau Email)
       const matchesSearch = 
         (user.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (user.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -113,7 +173,6 @@ export default function AdminUsersPage() {
       return matchesSearch;
     })
     .sort((a, b) => {
-      // 3. Sorting Berdasarkan Kolom Pilihan
       let valueA = (a[sortBy] || '').toString().toLowerCase();
       let valueB = (b[sortBy] || '').toString().toLowerCase();
 
@@ -124,17 +183,22 @@ export default function AdminUsersPage() {
 
   return (
     <div className='p-4 md:p-6 space-y-6'>
-      <div>
-        <h1 className='text-2xl md:text-3xl font-bold tracking-tight'>User Management</h1>
-        <p className='text-sm text-muted-foreground'>
-          Menampilkan {processedUsers.length} dari {users.length} data pelanggan terdaftar.
-        </p>
+      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+        <div>
+          <h1 className='text-2xl md:text-3xl font-bold tracking-tight'>User Management</h1>
+          <p className='text-sm text-muted-foreground'>
+            Menampilkan {processedUsers.length} dari {users.length} data pelanggan terdaftar.
+          </p>
+        </div>
+        <Button onClick={() => setIsAddOpen(true)} className="flex items-center gap-2 shadow-sm self-start sm:self-auto">
+          <UserPlus className="w-4 h-4" />
+          Tambah User
+        </Button>
       </div>
 
-      {/* WRAPPER GRID UTAMA */}
       <div className='grid grid-cols-1 lg:grid-cols-4 gap-6 items-start'>
         
-        {/* KOLOM KIRI: Tabel Data User (Memakan 3 Kolom di Desktop) */}
+        {/* KOLOM KIRI: Tabel Data User */}
         <div className='lg:col-span-3 space-y-4'>
           <Card className="shadow-sm overflow-hidden bg-white">
             <CardContent className='p-0'>
@@ -165,7 +229,7 @@ export default function AdminUsersPage() {
                             <TableCell className='px-6 py-3.5 text-sm font-mono text-slate-600'>{u.deviceSn || '-'}</TableCell>
                             <TableCell className='px-6 py-3.5'>
                               <Badge 
-                                variant={u.role === 'admin' ? 'default' : u.role === 'user' ? 'outline' : 'secondary'} 
+                                variant={u.role === 'admin' ? 'default' : 'secondary'} 
                                 className="px-2.5 py-0.5 rounded-full font-semibold text-[11px]"
                               >
                                 {u.role?.toUpperCase() || 'CUSTOMER'}
@@ -192,7 +256,7 @@ export default function AdminUsersPage() {
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-semibold text-slate-900 text-sm truncate">{u.name || '-'}</span>
                           <Badge 
-                            variant={u.role === 'admin' ? 'default' : u.role === 'user' ? 'outline' : 'secondary'} 
+                            variant={u.role === 'admin' ? 'default' : 'secondary'} 
                             className="text-[10px] px-2 py-0.5 font-bold rounded-full shadow-sm shrink-0"
                           >
                             {u.role?.toUpperCase() || 'CUSTOMER'}
@@ -230,7 +294,7 @@ export default function AdminUsersPage() {
           </Card>
         </div>
 
-        {/* KOLOM KANAN: Panel Filter & Sorting (order-first membuat panel ini berada di atas tabel khusus layar HP) */}
+        {/* KOLOM KANAN: Panel Filter & Sorting */}
         <div className='lg:col-span-1 order-first lg:order-none space-y-4'>
           <Card className="shadow-sm border border-slate-200/80 bg-white">
             <CardHeader className="pb-3 flex flex-row items-center space-x-2 space-y-0">
@@ -240,8 +304,6 @@ export default function AdminUsersPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
-              
-              {/* 1. Input Live Search */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-slate-500 flex items-center gap-1">
                   <Search className="w-3 h-3" /> Cari Pengguna
@@ -254,7 +316,6 @@ export default function AdminUsersPage() {
                 />
               </div>
 
-              {/* 2. Dropdown Filter Berdasarkan Role */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-slate-500 flex items-center gap-1">
                   <UserCheck className="w-3 h-3" /> Kategori Role
@@ -266,12 +327,10 @@ export default function AdminUsersPage() {
                 >
                   <option value="all">Semua Jenis Role</option>
                   <option value="customer">Customer</option>
-                  <option value="user">User</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
 
-              {/* 3. Dropdown Sorting Parameter */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-slate-500 flex items-center gap-1">
                   <ArrowUpDown className="w-3 h-3" /> Urutkan Berdasarkan
@@ -288,7 +347,6 @@ export default function AdminUsersPage() {
                 </select>
               </div>
 
-              {/* 4. Dropdown Sorting Order (Asc / Desc) */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-slate-500">Arah Urutan</Label>
                 <div className="flex gap-1">
@@ -310,14 +368,77 @@ export default function AdminUsersPage() {
                   </Button>
                 </div>
               </div>
-
             </CardContent>
           </Card>
         </div>
-
       </div>
 
-      {/* Dialog Edit User */}
+      {/* --- DIALOG MODAL: TAMBAH USER BARU --- */}
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Tambah User Baru</DialogTitle>
+            <DialogDescription>Masukkan detail data pengguna baru ke sistem.</DialogDescription>
+          </DialogHeader>
+          <div className='space-y-4 py-2 text-sm'>
+            <div className='space-y-1.5'>
+              <Label htmlFor="new-name">Nama Lengkap</Label>
+              <Input 
+                id="new-name"
+                placeholder="Masukkan nama..."
+                value={newUser.name} 
+                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+              />
+            </div>
+            <div className='space-y-1.5'>
+              <Label htmlFor="new-email">Alamat Email</Label>
+              <Input 
+                id="new-email"
+                type="email"
+                placeholder="contoh@email.com"
+                value={newUser.email} 
+                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+              />
+            </div>
+            <div className='space-y-1.5'>
+              <Label htmlFor="new-role">Role</Label>
+              <select 
+                id="new-role"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={newUser.role} 
+                onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+              >
+                <option value="customer">Customer</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div className='space-y-1.5'>
+              <Label htmlFor="new-deviceSn">Device SN (Opsional)</Label>
+              <select 
+                id="new-deviceSn"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={newUser.deviceSn} 
+                onChange={(e) => setNewUser({ ...newUser, deviceSn: e.target.value })}
+              >
+                <option value="">Tanpa Device (Kosong)</option>
+                {availableDevicesForAdd.map((device) => (
+                  <option key={device.id} value={device.id}>
+                    {device.id} {device.name ? `- ${device.name}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsAddOpen(false)}>Batal</Button>
+            <Button onClick={handleAddUser} disabled={addLoading}>
+              {addLoading ? 'Menyimpan...' : 'Tambah Pelanggan'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIALOG MODAL: EDIT USER */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -343,17 +464,24 @@ export default function AdminUsersPage() {
                   onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
                 >
                   <option value="customer">Customer</option>
-                  <option value="user">User</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
               <div className='space-y-1.5'>
-                <Label htmlFor="deviceSn">Device SN</Label>
-                <Input 
+                <Label htmlFor="deviceSn">Device SN (Opsional)</Label>
+                <select 
                   id="deviceSn"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   value={editingUser.deviceSn} 
                   onChange={(e) => setEditingUser({ ...editingUser, deviceSn: e.target.value })}
-                />
+                >
+                  <option value="">Tanpa Device (Kosong)</option>
+                  {getAvailableDevicesForEdit(users.find(u => u.id === editingUser.id)?.deviceSn).map((device) => (
+                    <option key={device.id} value={device.id}>
+                      {device.id} {device.name ? `- ${device.name}` : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           )}
