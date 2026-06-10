@@ -4,7 +4,7 @@ import { ArrowRight, Shield, Activity, BatteryCharging, Waves, HeartPulse, Check
 
 export const metadata: Metadata = {
   title: 'SafeBand - Smart Fall Detection',
-  description: 'Gelang pintar pelacak dan deteksi jatuh untuk pemantauan lansia secara real-time.',
+  description: 'Chestbelt pintar pelacak dan deteksi jatuh untuk pemantauan lansia secara real-time.',
 };
 
 export default function LandingPage() {
@@ -58,7 +58,7 @@ export default function LandingPage() {
                     Lindungi Orang Tersayang,<br/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600"> Kapanpun & Dimanapun.</span>
                   </h1>
                   <p className='max-w-[600px] text-slate-500 md:text-xl/relaxed mt-6 mx-auto lg:mx-0'>
-                    Lebih dari sekadar gelang. SafeBand mendeteksi insiden jatuh secara seketika dan langsung memberikan notifikasi darurat kepada orang terdekat.
+                    Lebih dari sekadar chestbelt. SafeBand mendeteksi insiden jatuh secara seketika dan langsung memberikan notifikasi darurat kepada orang terdekat.
                   </p>
                 </div>
                 <div className='flex flex-col sm:flex-row items-center gap-4 pt-2 justify-center lg:justify-start'>
@@ -148,7 +148,7 @@ export default function LandingPage() {
           <div className='container px-4 md:px-6 mx-auto'>
             <div className="text-center mb-10">
               <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-                Teknologi Medis di Pergelangan Tangan Anda
+                Teknologi Medis di Dada Anda
               </h2>
               <p className="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">
                 Didesain khusus untuk memberikan rasa aman tanpa henti, didukung sensor berpresisi tinggi.

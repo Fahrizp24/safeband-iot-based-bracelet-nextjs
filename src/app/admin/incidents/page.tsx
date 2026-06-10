@@ -411,15 +411,15 @@ export default function AdminIncidentsPage() {
 
       {/* SECTION 3: MAIN DATA CONTAINER (LOG TABLE & CONTROLS) */}
       <Card className="w-full border shadow-sm bg-card rounded-xl overflow-hidden">
-        <CardHeader className="p-4 bg-slate-50/50 border-b border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-          <div className="space-y-0.5">
+        <CardHeader className="p-4 bg-slate-50/50 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="space-y-0.5 shrink-0">
             <CardTitle className="text-base font-semibold text-slate-900">Log Riwayat Darurat Global</CardTitle>
             <CardDescription className="text-xs">Total Data Terfilter: {processedLogs.length} baris</CardDescription>
           </div>
           
           {/* Filters & Control Panel */}
           {logs.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full xl:w-auto justify-end">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full lg:w-auto justify-end flex-wrap">
               
               {/* Range Tanggal Picker */}
               <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto bg-white px-3 py-1.5 rounded-md border border-slate-200 shadow-sm h-8">

@@ -82,14 +82,6 @@ export const navGroups: NavGroup[] = [
         access: { role: 'admin' }
       },
       {
-        title: 'System Health',
-        url: '/admin/health',
-        icon: 'activity',
-        isActive: false,
-        items: [],
-        access: { role: 'admin' }
-      },
-      {
         title: 'Incident Reports',
         url: '/admin/incidents',
         icon: 'post',

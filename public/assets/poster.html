@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>SafeBand Poster A2 - High Res</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* RESET & BASE PRINT SETUP */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #0b0f19;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 120px 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* A2 POSTER CONTAINER (150 PPI - 2480 x 3508) */
+        .poster-a2 {
+            width: 2480px;
+            height: 3508px; 
+            background-color: #ffffff;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 50px 100px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transform-origin: top center;
+        }
+
+        /* Responsive preview scaling for screens smaller than the poster */
+        @media (max-width: 2600px) {
+            .poster-a2 {
+                zoom: 0.35; /* Helps fit on screen for preview without breaking print */
+            }
+        }
+
+        /* BACKGROUND ELEMENTS */
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 65%;
+            background-image: 
+                linear-gradient(to right, rgba(0, 74, 173, 0.03) 3px, transparent 3px),
+                linear-gradient(to bottom, rgba(0, 74, 173, 0.03) 3px, transparent 3px);
+            background-size: 120px 120px;
+            pointer-events: none;
+        }
+
+        .blob-cyan {
+            position: absolute;
+            width: 1500px;
+            height: 1500px;
+            top: -450px;
+            right: -450px;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+            pointer-events: none;
+        }
+
+        /* SECTION 1: HERO (TOP) */
+        .hero-section {
+            padding: 180px 180px 60px 180px;
+            position: relative;
+        }
+
+        .poster-logo {
+            height: 120px;
+            margin-bottom: 60px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .tag-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 18px;
+            background-color: rgba(0, 74, 173, 0.05);
+            color: #004aad;
+            padding: 18px 42px;
+            border-radius: 60px;
+            font-size: 39px;
+            font-weight: 700;
+            margin-bottom: 72px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .tag-badge i {
+            color: #00d4ff;
+        }
+
+        h1 {
+            font-size: 138px;
+            font-weight: 800;
+            color: #0a192f;
+            line-height: 1.2;
+            margin-bottom: 48px;
+            max-width: 80%;
+        }
+
+        h1 span {
+            color: #004aad;
+        }
+
+        .hero-desc {
+            font-size: 45px;
+            color: #475569;
+            line-height: 1.6;
+            max-width: 60%;
+        }
+
+        /* MOCKUP IMAGE AREA */
+        .product-mockup-wrapper {
+            position: absolute;
+            top: 180px;
+            right: 120px;
+            width: 850px;
+            height: 850px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 5;
+        }
+
+        .product-mockup-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 30px 60px rgba(0,212,255,0.25));
+        }
+
+        /* SECTION 2: FEATURES (3-COLUMN) */
+        .features-section {
+            padding: 60px 180px;
+            background-color: #0a192f;
+        }
+
+        .section-title {
+            font-size: 72px;
+            font-weight: 800;
+            color: #ffffff;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .section-subtitle {
+            font-size: 42px;
+            color: #94a3b8;
+            text-align: center;
+            margin-bottom: 105px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 72px;
+        }
+
+        .feature-card {
+            background: #112240;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 48px;
+            padding: 72px;
+            box-shadow: 0 12px 18px -3px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .icon-box {
+            width: 144px;
+            height: 144px;
+            border-radius: 36px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 60px;
+            margin-bottom: 48px;
+        }
+
+        .icon-blue { background-color: rgba(0, 212, 255, 0.1); color: #00d4ff; }
+        .icon-orange { background-color: rgba(245, 158, 11, 0.1); color: #fbbf24; }
+        .icon-green { background-color: rgba(16, 185, 129, 0.1); color: #34d399; }
+
+        .feature-card h3 {
+            font-size: 48px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 30px;
+        }
+
+        .feature-card p {
+            font-size: 36px;
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+
+        /* SECTION 3: ERGONOMIC & WIRELESS CHARGING */
+        .ergonomic-section {
+            padding: 90px 180px;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 120px;
+            align-items: center;
+        }
+
+        .tag-small {
+            font-size: 36px;
+            font-weight: 700;
+            color: #00d4ff;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 24px;
+            display: block;
+        }
+
+        .ergonomic-section h2 {
+            font-size: 84px;
+            font-weight: 800;
+            color: #0a192f;
+            margin-bottom: 36px;
+        }
+
+        .ergonomic-section .desc {
+            font-size: 42px;
+            color: #475569;
+            line-height: 1.6;
+            margin-bottom: 72px;
+        }
+
+        .badges-container {
+            display: flex;
+            gap: 48px;
+            margin-bottom: 72px;
+        }
+
+        .badge-info {
+            background-color: #f8fafc;
+            border: 3px solid #e2e8f0;
+            border-radius: 36px;
+            padding: 36px 60px;
+            text-align: center;
+            min-width: 255px;
+        }
+
+        .badge-info .val {
+            font-size: 54px;
+            font-weight: 800;
+            color: #004aad;
+            display: block;
+        }
+
+        .badge-info .lbl {
+            font-size: 33px;
+            color: #64748b;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        .charging-highlight {
+            border-top: 3px solid #e2e8f0;
+            padding-top: 48px;
+        }
+
+        .charging-highlight h4 {
+            font-size: 42px;
+            font-weight: 700;
+            color: #0a192f;
+            margin-bottom: 18px;
+        }
+
+        .charging-highlight p {
+            font-size: 36px;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        .charger-image-wrapper {
+            width: 100%;
+            height: 720px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .charger-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 20px 40px rgba(0,0,0,0.1));
+        }
+
+        /* SECTION 4: FOOTER / CTA */
+        .footer-cta {
+            margin-top: auto;
+            background-color: #0a192f;
+            padding: 135px 180px;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            align-items: center;
+            position: relative;
+        }
+
+        .footer-cta::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 80% 50%, rgba(0, 212, 255, 0.08) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .footer-cta h2 {
+            color: #ffffff;
+            font-size: 78px;
+            font-weight: 800;
+            margin-bottom: 30px;
+        }
+
+        .footer-cta p {
+            color: #94a3b8;
+            font-size: 39px;
+            line-height: 1.6;
+            margin-bottom: 60px;
+            max-width: 90%;
+        }
+
+        .check-list {
+            list-style: none;
+        }
+
+        .check-list li {
+            color: #e2e8f0;
+            font-size: 39px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .check-list li i {
+            color: #00d4ff;
+        }
+
+        .right-cta-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 48px;
+            z-index: 2;
+        }
+
+        .btn-primary-poster {
+            background-color: #004aad;
+            color: #ffffff;
+            padding: 42px 84px;
+            border-radius: 90px;
+            font-size: 42px;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 30px;
+            box-shadow: 0 12px 45px rgba(0, 74, 173, 0.4);
+            transition: all 0.3s;
+        }
+
+        .qr-area {
+            display: flex;
+            align-items: center;
+            gap: 42px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 3px solid rgba(255, 255, 255, 0.08);
+            padding: 30px;
+            border-radius: 36px;
+        }
+
+        .qr-placeholder {
+            width: 180px;
+            height: 180px;
+            background: #ffffff;
+            border-radius: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #0a192f;
+            font-size: 90px;
+        }
+
+        .qr-text {
+            color: #ffffff;
+            font-size: 33px;
+            line-height: 1.4;
+        }
+        .qr-text span {
+            color: #00d4ff;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="poster-a2">
+        <div class="grid-overlay"></div>
+        <div class="blob-cyan"></div>
+
+        <div class="hero-section">
+            <img src="logo with my brand name.png" alt="SafeBand Logo" class="poster-logo" onerror="this.src='logo dark.png';">
+            
+            <div class="tag-badge">
+                <i class="fa-solid fa-shield-halved"></i> Sistem Deteksi Jatuh Real-Time #1
+            </div>
+            <h1>Lindungi Orang Tersayang, <br><span>Kapanpun & Dimanapun.</span></h1>
+            <p class="hero-desc">Lebih dari sekadar alat pemantau, SafeBand mendeteksi insiden jatuh secara seketika dan langsung memberikan notifikasi darurat otomatis ke keluarga terdekat.</p>
+            
+            <div class="product-mockup-wrapper">
+                <img src="mockup item.png" alt="SafeBand Device" class="product-mockup-image">
+            </div>
+        </div>
+
+        <div class="features-section">
+            <div class="section-title">Teknologi Medis di Dada Anda</div>
+            <div class="section-subtitle">Didesain khusus untuk memberikan rasa aman tanpa henti, didukung oleh sensor berpresisi tinggi.</div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="icon-box icon-blue">
+                        <i class="fa-solid fa-wave-square"></i>
+                    </div>
+                    <h3>Sensor MPU6050</h3>
+                    <p>Mendeteksi posisi, akselerasi, dan pergerakan secara real-time dengan algoritma complementary filter untuk meminimalkan false alarm.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-box icon-orange">
+                        <i class="fa-solid fa-bell"></i>
+                    </div>
+                    <h3>Notifikasi Darurat</h3>
+                    <p>Otomatis mengirimkan sinyal SOS darurat via WhatsApp dan integrasi platform web bila sistem mengenali benturan fisik ekstrem.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-box icon-green">
+                        <i class="fa-solid fa-location-dot"></i>
+                    </div>
+                    <h3>Pelacakan Lokasi</h3>
+                    <p>Kirim koordinat GPS secara otomatis saat terdeteksi insiden untuk mempercepat proses penanganan dan pertolongan di lapangan.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="ergonomic-section">
+            <div>
+                <span class="tag-small">Desain Ergonomis</span>
+                <h2>Nyaman Dipakai Sepanjang Hari</h2>
+                <p class="desc">SafeBand dirancang dengan material medical-grade silicone yang ringan dan hipoalergenik. Desainnya minimalis dan elegan, sehingga cocok untuk segala usia dan aktivitas sehari-hari.</p>
+                
+                <div class="badges-container">
+                    <div class="badge-info"><span class="val">28g</span><span class="lbl">Ultra Ringan</span></div>
+                    <div class="badge-info"><span class="val">IP67</span><span class="lbl">Tahan Air</span></div>
+                    <div class="badge-info"><span class="val">24/7</span><span class="lbl">Perlindungan</span></div>
+                </div>
+
+                <div class="charging-highlight">
+                    <h4>Pengisian Daya Nirkabel & Cepat</h4>
+                    <p>Cukup letakkan SafeBand di atas pad pengisi daya magnetik. LED cyan menandakan pengisian aktif, sehingga perlindungan Anda tidak pernah berhenti.</p>
+                </div>
+            </div>
+
+            <div class="charger-image-wrapper">
+                <img src="item charger.png" alt="SafeBand Charger" class="charger-image">
+            </div>
+        </div>
+
+        <div class="footer-cta">
+            <div>
+                <h2>Ketenangan Pikiran untuk Keluarga</h2>
+                <p>Bergabung dengan keluarga lain yang telah mengamankan orang tua mereka menggunakan integrasi penuh Internet of Things (IoT) kami.</p>
+                <ul class="check-list">
+                    <li><i class="fa-solid fa-circle-check"></i> Log Insiden Permanen & Aman di Firebase</li>
+                    <li><i class="fa-solid fa-circle-check"></i> Kompatibel dengan Mobile & Platform Web</li>
+                    <li><i class="fa-solid fa-circle-check"></i> Pelacakan Koordinat Akurat (GeoPoint)</li>
+                </ul>
+            </div>
+
+            <div class="right-cta-panel">
+                <div class="qr-area" style="padding: 42px 60px; border-radius: 90px; gap: 30px;">
+                    <i class="fa-solid fa-globe" style="font-size: 72px; color: #00d4ff;"></i>
+                    <div class="qr-text" style="font-size: 39px;">
+                        <span style="font-size: 45px;">Mulai sekarang:</span> www.safeband-iot-based-bracelet-nextjs.vercel.app
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

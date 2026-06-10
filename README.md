@@ -59,7 +59,7 @@ Berikut adalah *mapping* lengkap URL yang dapat Anda akses di browser untuk meli
 
 ---
 ### 🛠️ **Rute API ESP32 (Backend Tapping)**
-Endpoint URL (POST/GET) yang bisa dipanggil oleh C++ *script* alat gelang Anda (seperti modul ESP32/WiFi):
+Endpoint URL (POST/GET) yang bisa dipanggil oleh C++ *script* alat chestbelt Anda (seperti modul ESP32/WiFi):
 👉 **`http://localhost:3000/api/sensor`**
 
 📝 **Cara Menjalankannya Sekarang:**
